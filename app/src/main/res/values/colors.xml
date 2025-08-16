@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    
+    <!-- Primary colors -->
+    <color name="primary_color">#FF6B73FF</color>
+    <color name="primary_dark">#FF5A67D8</color>
+    <color name="primary_light">#FF8B93FF</color>
+    
+    <!-- Accent colors -->
+    <color name="accent_color">#FFFF6B9D</color>
+    <color name="accent_light">#FFFF8FB3</color>
+    
+    <!-- Background colors -->
+    <color name="background_color">#FFF8F9FA</color>
+    <color name="surface_color">#FFFFFFFF</color>
+    <color name="section_header_color">#FFF1F3F4</color>
+    <color name="section_content_color">#FFFFFFFF</color>
+    
+    <!-- Text colors -->
+    <color name="text_primary">#FF202124</color>
+    <color name="text_secondary">#FF5F6368</color>
+    <color name="text_disabled">#FF9AA0A6</color>
+    
+    <!-- Status colors -->
+    <color name="success_color">#FF34A853</color>
+    <color name="error_color">#FFEA4335</color>
+    <color name="warning_color">#FFF9AB00</color>
+    
+    <!-- Checkbox colors -->
+    <color name="checkbox_color">#FF6B73FF</color>
+    <color name="checkbox_checked">#FF34A853</color>
+</resources>
