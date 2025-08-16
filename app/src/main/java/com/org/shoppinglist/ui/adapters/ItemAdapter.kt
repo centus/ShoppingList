@@ -41,7 +41,9 @@ class ItemAdapter(
     inner class ShoppingItemViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val itemName: TextView = itemView.findViewById(R.id.itemName)
         private val itemCheckBox: CheckBox = itemView.findViewById(R.id.itemCheckBox)
-        private val itemMenuButton: ImageButton = itemView.findViewById(R.id.itemMenuButton)
+        private val itemEditButton: ImageButton = itemView.findViewById(R.id.itemEditButton) // ADDED
+        private val itemDeleteButton: ImageButton = itemView.findViewById(R.id.itemDeleteButton) // ADDED
+        private val itemMoveButton: ImageButton = itemView.findViewById(R.id.itemMoveButton)
 
         fun bind(shoppingItem: ShoppingItem) {
             itemName.text = shoppingItem.name
@@ -60,7 +62,9 @@ class ItemAdapter(
                 } else {
                     itemName.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
                 }
-                itemMenuButton.visibility = View.GONE // Typically no menu for items in shopping mode
+                itemEditButton.visibility = View.GONE
+                itemDeleteButton.visibility = View.GONE
+                itemMoveButton.visibility = View.GONE
             } else {
                 // PLANNING MODE
                 itemCheckBox.isChecked = shoppingItem.isPlanned
@@ -70,12 +74,29 @@ class ItemAdapter(
                     }
                 }
                 itemName.paintFlags = itemName.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv() // No strike-through
-                itemMenuButton.visibility = View.VISIBLE // Show menu in planning mode
+                itemEditButton.visibility = View.VISIBLE
+                itemDeleteButton.visibility = View.VISIBLE
+                itemMoveButton.visibility = View.VISIBLE
+
+            }
+            itemName.setOnClickListener {
+                itemCheckBox.toggle() // This will trigger the CheckBox's own OnCheckedChangeListener
             }
 
-            itemMenuButton.setOnClickListener { view ->
-                if (!this@ItemAdapter.isShoppingMode && adapterPosition != RecyclerView.NO_POSITION) { // Only show menu in planning mode
-                    showItemPopupMenu(view, getItem(adapterPosition))
+            itemEditButton.setOnClickListener {
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    onItemEdit(getItem(adapterPosition))
+                }
+            }
+
+            itemDeleteButton.setOnClickListener {
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    onItemDelete(getItem(adapterPosition))
+                }
+            }
+            itemMoveButton.setOnClickListener {
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    onItemMove(getItem(adapterPosition))
                 }
             }
         }

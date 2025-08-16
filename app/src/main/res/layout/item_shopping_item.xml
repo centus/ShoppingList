@@ -6,7 +6,10 @@
     android:background="?attr/selectableItemBackground"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:padding="12dp">
+    android:paddingStart="12dp"
+    android:paddingTop="8dp"
+    android:paddingEnd="8dp"
+    android:paddingBottom="8dp">
 
     <CheckBox
         android:id="@+id/itemCheckBox"
@@ -27,11 +30,33 @@
         android:gravity="start|center_vertical" />
 
     <ImageButton
-        android:id="@+id/itemMenuButton" 
-        android:layout_width="32dp"
-        android:layout_height="32dp"
+        android:id="@+id/itemMoveButton"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="8dp"
         android:background="?attr/selectableItemBackgroundBorderless"
-        android:src="@drawable/ic_more_vert" 
+        android:src="@drawable/ic_move"
+        android:contentDescription="Move Item"
+        app:tint="@color/text_secondary" />
+
+    <ImageButton
+        android:id="@+id/itemEditButton"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="4dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ic_edit"
+        android:contentDescription="Edit Item"
+        app:tint="@color/text_secondary" />
+
+    <ImageButton
+        android:id="@+id/itemDeleteButton"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="4dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ic_delete"
+        android:contentDescription="Delete Item"
         app:tint="@color/text_secondary" />
 
 </LinearLayout>

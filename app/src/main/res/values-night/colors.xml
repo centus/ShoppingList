@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Text colors for dark theme -->
+    <color name="text_primary">#FFFFFFFF</color> <!-- White -->
+    <color name="text_secondary">#B3FFFFFF</color> <!-- White 70% -->
+    <color name="text_disabled">#80FFFFFF</color> <!-- White 50% -->
+
+    <!-- Background colors for dark theme -->
+    <color name="background_color">#FF121212</color> <!-- Standard dark background -->
+    <color name="surface_color">#FF1E1E1E</color> <!-- Surface components like cards, sheets -->
+    <color name="section_header_color">#FF2C2C2C</color> <!-- Slightly distinct dark for section headers -->
+    <color name="section_content_color">#FF1E1E1E</color> <!-- Background for section content area -->
+    <color name="item_background">#FF1E1E1E</color> <!-- Background for list items -->
+
+    <!-- Primary colors - these often remain the same or are slightly desaturated for dark theme -->
+    <!-- Assuming your primary_color (#FF6B73FF) is okay for dark theme, otherwise, redefine it here. -->
+    <!-- For example, a slightly desaturated or altered version for dark backgrounds -->
+    <!-- <color name="primary_color">#FF8A90FF</color> -->
+    <color name="primary_color">#FF6B73FF</color> <!-- Keeping original for now -->
+    <color name="primary_dark">#FF5A67D8</color> <!-- Keeping original for now -->
+    <color name="primary_light">#FF8B93FF</color> <!-- Keeping original for now -->
+
+
+    <!-- Accent colors - same assumption as primary -->
+    <color name="accent_color">#FFFF6B9D</color> <!-- Keeping original for now -->
+    <color name="accent_light">#FFFF8FB3</color> <!-- Keeping original for now -->
+
+
+    <!-- Status colors for dark theme -->
+    <color name="success_color">#FF66BB6A</color> <!-- A lighter green that is visible on dark -->
+    <color name="success_color_light">#FF2E7D32</color> <!-- Darker green background, for light text on it -->
+    <color name="error_color">#FFFF7060</color> <!-- Lighter red -->
+    <color name="warning_color">#FFFFCA28</color> <!-- Lighter yellow/orange -->
+
+    <!-- Checkbox colors - these might need adjustment if they don't contrast well -->
+    <color name="checkbox_color">#FF8A90FF</color> <!-- Adjusted primary for checkbox on dark -->
+    <color name="checkbox_checked">#FF66BB6A</color> <!-- Adjusted success for checkbox on dark -->
+
+    <color name="black">#FF000000</color> <!-- Black remains black -->
+    <color name="white">#FFFFFFFF</color> <!-- White remains white -->
+</resources>

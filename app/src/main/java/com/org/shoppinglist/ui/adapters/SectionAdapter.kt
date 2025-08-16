@@ -95,7 +95,13 @@ class SectionAdapter(
                     onSectionExpanded(currentSectionWithItems.section, newExpandedState)
                 }
             }
-
+            sectionHeaderContainer.setOnClickListener { // << CLICK LISTENER MOVED HERE
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    val currentSectionWithItems = getItem(adapterPosition)
+                    val newExpandedState = !currentSectionWithItems.section.isExpanded
+                    onSectionExpanded(currentSectionWithItems.section, newExpandedState)
+                }
+            }
             addItemToSectionButton.setOnClickListener {
                 if (adapterPosition != RecyclerView.NO_POSITION) {
                     onAddItemToSection(getItem(adapterPosition).section.id)
