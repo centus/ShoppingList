@@ -23,9 +23,9 @@
     <string name="delete_item">מחק פריט</string>
     <string name="move_item">העבר פריט</string>
     <string name="move_item_to_section">העבר \"%1$s\" ל...</string>
-    <string name="confirm_reset_all_title">איפוס כל הפריטים</string>
-    <string name="confirm_reset_all_message">האם לאפס את סטטוס הסימון של כל הפריטים?</string>
-    <string name="confirm_reset_shopping_list_title">Confirm Reset</string>
+    <string name="confirm_reset_all_title">איפוס רשימת קניות</string>
+    <string name="confirm_reset_all_message">האם לאפס את רשימת הקניות הנוכחית?</string>
+    <string name="confirm_reset_shopping_list_title">איפוס קנייה נוכחית</string>
 
 
     <!-- Dialog buttons -->
@@ -33,13 +33,13 @@
     <string name="save">שמור</string>
     <string name="delete">מחק</string>
     <string name="cancel">ביטול</string>
-    <string name="reset_action">Reset</string>
+    <string name="reset_action">איפוס</string>
 
     <!-- Dialog messages -->
     <string name="delete_section_message">האם אתה בטוח שברצונך למחוק את \"%1$s\"? הפריטים יועברו לקטגוריית \"לא מוקצה\".</string>
     <string name="delete_item_message">האם אתה בטוח שברצונך למחוק את \"%1$s\"?</string>
     <string name="no_other_sections_to_move">אין קטגוריות אחרות להעביר את פריט זה.</string>
-    <string name="confirm_reset_shopping_list_message">Are you sure you want to reset your shopping list? All checked items will be unchecked, and any items added during this shopping session will be removed.</string>
+    <string name="confirm_reset_shopping_list_message">האם אתה בטוח שברצונך לאפס את הקנייה הנוכחית? כל הפריטים יחזרו למצב לא מסומן, וכל הפריטים שנוספו במהלך הקניות האלו יוסרו.</string>
 
 
     <!-- Input hints -->
@@ -77,10 +77,9 @@
     <string name="item_count_placeholder" translatable="false">%d items</string> <!-- Added -->
 
     <!-- Menu Actions -->
-    <string name="action_reset_all">אפס הכל</string>
-    <string name="action_share_list">שתף רשימה</string>
-    <string name="action_import_list_json">Import List (JSON)</string>
-    <string name="action_import_list_txt">Import Default (TXT)</string>
-    <string name="action_reset_shopping_list">Reset Shopping List</string>
+    <string name="action_reset_all">איפוס רשימת קניות</string>
+    <string name="action_share_list">שיתוף רשימה</string>
+    <string name="action_import_list_txt">קבלת רשימה</string>
+    <string name="action_reset_shopping_list">איפוס קנייה נוכחית</string>
 
 </resources>

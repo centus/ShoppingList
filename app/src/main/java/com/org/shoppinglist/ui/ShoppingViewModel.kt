@@ -217,36 +217,46 @@ class ShoppingViewModel(private val repository: ShoppingRepository) : ViewModel(
         }
     }
 
+
     fun importShoppingListData(importedData: List<SimpleSection>) {
         viewModelScope.launch {
             // Clear existing data first
-            repository.deleteAllSectionsAndItems() // Modified for full TXT import
+            repository.deleteAllSectionsAndItems()
 
-            // Reset UI states related to previous list
-            repository.resetAllItemCheckedStates() // Though data is wiped, good practice if this was partial
-            repository.resetAllPlannedStates()     // Though data is wiped
-            repository.deleteAdHocItems()        // Though data is wiped
-            _isShoppingMode.value = false
+            // Optional: Reset UI states if they are not automatically cleared by data wipe
+            // repository.resetAllItemCheckedStates()
+            // repository.resetAllPlannedStates()
+            // repository.deleteAdHocItems()
+            // _isShoppingMode.value = false // Consider if this should be reset
 
             var sectionOrder = 0
             for (simpleSection in importedData) {
-                val section = Section(name = simpleSection.name, orderIndex = sectionOrder++, isDefault = false)
-                val sectionId = repository.insertSection(section)
+                // Assuming Section constructor takes name, orderIndex, isDefault
+                val section = Section(
+                    name = simpleSection.name,
+                    orderIndex = sectionOrder++,
+                    isDefault = false // Imported sections are generally not the default
+                )
+                val sectionId = repository.insertSection(section) // Make sure insertSection returns the ID
 
                 var itemOrder = 0
                 for (simpleItem in simpleSection.items) {
+                    // Assuming ShoppingItem constructor takes sectionId, name, isPlanned, isChecked, orderIndex
                     val item = ShoppingItem(
-                        name = simpleItem.name,
                         sectionId = sectionId,
+                        name = simpleItem.name,
+                        isPlanned = simpleItem.isPlanned, // <<< Key change: Use isPlanned from SimpleItem
+                        isChecked = false,                // Default for imported items
                         orderIndex = itemOrder++,
-                        isAdHoc = false,
-                        isChecked = false,
-                        isPlanned = true
+                        isAdHoc = false                   // Default for imported items
+                        // Ensure all necessary ShoppingItem fields are covered
                     )
                     repository.insertItem(item)
                 }
             }
-            Log.d("ShoppingViewModel", "Import of shopping list data completed.")
+            Log.d("ShoppingViewModel", "Import of shopping list data completed with 'isPlanned' status.")
+            // You might need to trigger a refresh of _allSectionsWithItems if it's not automatic
+            // or ensure displayedList updates correctly.
         }
     }
 

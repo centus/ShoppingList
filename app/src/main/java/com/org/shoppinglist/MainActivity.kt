@@ -11,6 +11,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -26,7 +27,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.io.BufferedReader
+import java.io.File
 import java.io.InputStreamReader
+import java.io.FileOutputStream
+// Removed: import kotlin.concurrent.write // This import seemed unused and potentially problematic
+import java.text.SimpleDateFormat // ADDED for timestamp
+import java.util.Date             // ADDED for timestamp
+import java.util.Locale           // ADDED for timestamp
 
 class MainActivity : AppCompatActivity() {
 
@@ -66,6 +73,8 @@ class MainActivity : AppCompatActivity() {
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
         val resetShoppingItem = menu.findItem(R.id.action_reset_shopping_list)
         resetShoppingItem?.isVisible = viewModel.isShoppingMode.value ?: false
+        val resetShoppingList = menu.findItem(R.id.action_reset_all)
+        resetShoppingList?.isVisible = !(viewModel.isShoppingMode.value ?: false)
         return super.onPrepareOptionsMenu(menu)
     }
 
@@ -77,16 +86,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            R.id.action_reset_all -> {
-                showResetAllConfirmationDialog()
-                true
-            }
             R.id.action_share_list -> {
                 exportShoppingList()
-                true
-            }
-            R.id.action_import_list_json -> {
-                importShoppingListJson()
                 true
             }
             R.id.action_import_list_txt -> {
@@ -97,14 +98,17 @@ class MainActivity : AppCompatActivity() {
                 showResetShoppingConfirmationDialog()
                 true
             }
+            R.id.action_reset_all -> {
+                showResetAllConfirmationDialog()
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
-
-    private fun showResetShoppingConfirmationDialog() {
+    private fun showResetAllConfirmationDialog() {
         AlertDialog.Builder(this)
-            .setTitle(getString(R.string.confirm_reset_shopping_list_title))
-            .setMessage(getString(R.string.confirm_reset_shopping_list_message))
+            .setTitle(getString(R.string.confirm_reset_all_title))
+            .setMessage(getString(R.string.confirm_reset_all_message))
             .setPositiveButton(getString(R.string.reset_action)) { _, _ ->
                 viewModel.performFullShoppingReset()
             }
@@ -112,13 +116,12 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-
-    private fun showResetAllConfirmationDialog() {
+    private fun showResetShoppingConfirmationDialog() {
         AlertDialog.Builder(this)
-            .setTitle(getString(R.string.confirm_reset_all_title))
-            .setMessage(getString(R.string.confirm_reset_all_message))
-            .setPositiveButton(R.string.delete) { _, _ ->
-                viewModel.performFullShoppingReset()
+            .setTitle(getString(R.string.confirm_reset_shopping_list_title))
+            .setMessage(getString(R.string.confirm_reset_shopping_list_message))
+            .setPositiveButton(getString(R.string.reset_action)) { _, _ ->
+                viewModel.resetAllItemCheckedStates()
             }
             .setNegativeButton(getString(R.string.cancel), null)
             .show()
@@ -177,9 +180,9 @@ class MainActivity : AppCompatActivity() {
             Log.d("MainActivity", "displayedList observer triggered. Section count: ${sections.size}")
             sections.forEach { sectionWithItems ->
                 val itemNames = sectionWithItems.items.joinToString(", ") { shoppingItem ->
-                    "\'${shoppingItem.name}\' (id: ${shoppingItem.id}, planned: ${shoppingItem.isPlanned}, checked: ${shoppingItem.isChecked})"
+                    "'${shoppingItem.name}' (id: ${shoppingItem.id}, planned: ${shoppingItem.isPlanned}, checked: ${shoppingItem.isChecked})"
                 }
-                Log.d("MainActivity", "Section \'${sectionWithItems.section.name}\': [$itemNames]")
+                Log.d("MainActivity", "Section '${sectionWithItems.section.name}': [$itemNames]")
             }
             sectionAdapter.submitList(sections)
         }
@@ -345,24 +348,59 @@ class MainActivity : AppCompatActivity() {
 
     private fun exportShoppingList() {
         lifecycleScope.launch {
-            val sectionsWithItems = viewModel.displayedList.value ?: return@launch
+            val sectionsWithItems = viewModel.displayedList.value ?: run {
+                Toast.makeText(this@MainActivity, "List is empty, nothing to share.", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            if (sectionsWithItems.isEmpty()) {
+                Toast.makeText(this@MainActivity, "List is empty, nothing to share.", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+
             val exportData = sectionsWithItems.map { swi ->
-                SimpleSection(swi.section.name, swi.items.map { SimpleItem(it.name) })
+                com.org.shoppinglist.data.SimpleSection(swi.section.name, swi.items.map { com.org.shoppinglist.data.SimpleItem(it.name, it.isPlanned) }) // it.isPlanned added here
             }
             val gson = Gson()
             val jsonString = gson.toJson(exportData)
 
-            val shareIntent = Intent().apply {
-                action = Intent.ACTION_SEND
-                putExtra(Intent.EXTRA_TEXT, jsonString)
-                type = "text/plain"
+            if (jsonString.isBlank()) {
+                Toast.makeText(this@MainActivity, "Failed to generate JSON data.", Toast.LENGTH_SHORT).show()
+                return@launch
             }
-            exportListLauncher.launch(Intent.createChooser(shareIntent, getString(R.string.action_share_list)))
-        }
-    }
 
-    private fun importShoppingListJson() {
-        importJsonLauncher.launch("application/json")
+            try {
+                // Generate timestamp for filename
+                val sdf = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
+                val timestamp = sdf.format(Date())
+                val fileName = "shopping_list_export_$timestamp.txt" // New filename with timestamp and .txt extension
+
+                val cacheSubDir = File(cacheDir, "shared_lists")
+                cacheSubDir.mkdirs()
+                val file = File(cacheSubDir, fileName) // Use the new dynamic filename
+
+                FileOutputStream(file).use {
+                    it.write(jsonString.toByteArray()) // Still writing the JSON string as content
+                }
+
+                val fileUri = FileProvider.getUriForFile(
+                    this@MainActivity,
+                    "${applicationContext.packageName}.fileprovider",
+                    file
+                )
+
+                val shareIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_STREAM, fileUri)
+                    type = "text/plain" // CHANGED: MIME type to text/plain for .txt file
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                exportListLauncher.launch(Intent.createChooser(shareIntent, getString(R.string.action_share_list)))
+
+            } catch (e: Exception) {
+                Log.e("MainActivityExport", "Error exporting list to TXT file", e) // Updated log tag
+                Toast.makeText(this@MainActivity, "Error exporting list: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     private fun importShoppingListTxt() {
@@ -395,4 +433,3 @@ class MainActivity : AppCompatActivity() {
         }
     }
 }
-

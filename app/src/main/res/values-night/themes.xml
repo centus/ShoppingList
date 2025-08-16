@@ -2,6 +2,31 @@
     <!-- Base application theme. -->
     <style name="Base.Theme.ShoppingList" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+        <!-- Primary brand color. -->
+        <item name="colorPrimary">@color/primary_color</item> <!-- Assuming primary_color is suitable for dark, or define a dark variant -->
+        <item name="colorOnPrimary">@color/black</item> <!-- Or your preferred color on primary for dark theme -->
+        <!-- Secondary brand color. -->
+        <item name="colorSecondary">@color/accent_color</item> <!-- Assuming accent_color is suitable for dark -->
+        <item name="colorOnSecondary">@color/black</item> <!-- Or your preferred color on secondary for dark theme -->
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item> <!-- Or your specific color for dark -->
+        <!-- Customize your theme here. -->
+
+        <!-- Ensure menu text uses text_primary from your colors.xml (night) -->
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <!-- For menu items specifically, you might want to customize the textAppearance -->
+        <item name="textAppearanceSmallPopupMenu">@style/TextAppearance.App.SmallPopupMenu</item>
+        <item name="textAppearanceLargePopupMenu">@style/TextAppearance.App.LargePopupMenu</item>
+        <item name="actionMenuTextColor">@color/text_primary</item> <!-- This is for ActionBar/Toolbar action items -->
+    </style>
+
+     <!-- Custom TextAppearance for Popup Menus (can be the same or different for dark mode) -->
+    <style name="TextAppearance.App.SmallPopupMenu" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textColor">@color/text_primary</item> <!-- text_primary from values-night/colors.xml -->
+    </style>
+
+    <style name="TextAppearance.App.LargePopupMenu" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textColor">@color/text_primary</item> <!-- text_primary from values-night/colors.xml -->
     </style>
 </resources>
