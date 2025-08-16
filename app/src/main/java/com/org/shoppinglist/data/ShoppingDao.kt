@@ -7,12 +7,6 @@ import androidx.room.*
 interface ShoppingDao {
 
     // Section operations
-    @Query("SELECT * FROM sections ORDER BY orderIndex ASC")
-    fun getAllSections(): LiveData<List<Section>>
-
-    @Query("SELECT * FROM sections ORDER BY orderIndex ASC")
-    suspend fun getAllSectionsSync(): List<Section>
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSection(section: Section): Long
 
@@ -22,16 +16,19 @@ interface ShoppingDao {
     @Delete
     suspend fun deleteSection(section: Section)
 
+    @Query("SELECT * FROM sections ORDER BY orderIndex ASC")
+    fun getAllSectionsWithItems(): LiveData<List<SectionWithItems>>
+
+    @Query("SELECT * FROM sections ORDER BY orderIndex ASC")
+    suspend fun getAllSections(): List<Section>
+
     @Query("SELECT * FROM sections WHERE isDefault = 1 LIMIT 1")
     suspend fun getDefaultSection(): Section?
 
-    // Shopping item operations
-    @Query("SELECT * FROM shopping_items ORDER BY orderIndex ASC")
-    fun getAllItems(): LiveData<List<ShoppingItem>>
+    @Query("DELETE FROM sections") // Added for full TXT import
+    suspend fun deleteAllSections()
 
-    @Query("SELECT * FROM shopping_items WHERE sectionId = :sectionId ORDER BY orderIndex ASC")
-    fun getItemsBySection(sectionId: Long): LiveData<List<ShoppingItem>>
-
+    // Item operations
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertItem(item: ShoppingItem): Long
 
@@ -41,26 +38,34 @@ interface ShoppingDao {
     @Delete
     suspend fun deleteItem(item: ShoppingItem)
 
-    @Query("UPDATE shopping_items SET isChecked = :isChecked WHERE id = :itemId")
-    suspend fun updateItemCheckedStatus(itemId: Long, isChecked: Boolean)
+    @Query("DELETE FROM shopping_items WHERE sectionId = :sectionId")
+    suspend fun deleteItemsBySectionId(sectionId: Long)
 
-    @Query("UPDATE shopping_items SET sectionId = :newSectionId WHERE sectionId = :oldSectionId")
-    suspend fun moveItemsToSection(oldSectionId: Long, newSectionId: Long)
+    @Query("DELETE FROM shopping_items") // Added for full TXT import
+    suspend fun deleteAllItems()
 
+    @Query("SELECT * FROM shopping_items WHERE id = :itemId")
+    suspend fun getItemById(itemId: Long): ShoppingItem?
+
+    // Combined operations
+    @Transaction
+    @Query("SELECT * FROM sections WHERE id = :sectionId")
+    suspend fun getSectionWithItems(sectionId: Long): SectionWithItems?
+
+    // Full list operations / Reset operations
     @Query("UPDATE shopping_items SET isChecked = 0")
     suspend fun resetAllItemCheckedStates()
+
+    @Query("UPDATE shopping_items SET isPlanned = 0 WHERE isAdHoc = 0")
+    suspend fun resetAllPlannedStates()
 
     @Query("DELETE FROM shopping_items WHERE isAdHoc = 1")
     suspend fun deleteAdHocItems()
 
-    // Combined queries
-    @Transaction
-    @Query("SELECT * FROM sections ORDER BY orderIndex ASC")
-    fun getSectionsWithItems(): LiveData<List<SectionWithItems>>
-
-    @Query("SELECT COUNT(*) FROM shopping_items WHERE isChecked = 0")
+    // Statistics
+    @Query("SELECT COUNT(*) FROM shopping_items WHERE isChecked = 0 AND isPlanned = 1")
     fun getUncheckedItemsCount(): LiveData<Int>
 
-    @Query("SELECT COUNT(*) FROM shopping_items WHERE isChecked = 1")
+    @Query("SELECT COUNT(*) FROM shopping_items WHERE isChecked = 1 AND isPlanned = 1")
     fun getCheckedItemsCount(): LiveData<Int>
 }

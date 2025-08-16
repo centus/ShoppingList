@@ -19,125 +19,121 @@
             android:background="@color/section_header_color"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="16dp">
+            android:paddingStart="16dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="8dp">
 
-            <LinearLayout
+            <ImageButton
+                android:id="@+id/expandButton"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_expand_more"
+                app:tint="@color/text_primary" />
+
+            <TextView
+                android:id="@+id/sectionTitle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
                 android:layout_weight="1"
+                android:text="Section Name"
+                android:textColor="@color/text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textDirection="locale"
+                android:gravity="start|center_vertical" />
+
+            <LinearLayout
+                android:id="@+id/shoppingProgressContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:visibility="gone">
 
-                <ImageButton
-                    android:id="@+id/expandButton"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@drawable/ic_expand_more"
-                    android:tint="@color/text_primary" />
-
-                <TextView
-                    android:id="@+id/sectionTitle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    android:text="Section Name"
-                    android:textColor="@color/text_primary"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textDirection="rtl"
-                    android:gravity="start|center_vertical" />
-
-                <LinearLayout
-                    android:id="@+id/shoppingProgressContainer"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:visibility="gone">
-
-                    <ImageView
-                        android:id="@+id/completionIcon"
-                        android:layout_width="16dp"
-                        android:layout_height="16dp"
-                        android:layout_marginEnd="4dp"
-                        android:src="@drawable/ic_check_circle"
-                        android:visibility="gone"
-                        android:tint="@color/success_color" />
-
-                    <TextView
-                        android:id="@+id/checkedCountText"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0"
-                        android:textColor="@color/success_color"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:textDirection="rtl"
-                        android:gravity="center" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="/"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="14sp"
-                        android:layout_marginHorizontal="2dp"
-                        android:textDirection="rtl"
-                        android:gravity="center" />
-
-                    <TextView
-                        android:id="@+id/totalCountText"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="14sp"
-                        android:textDirection="rtl"
-                        android:gravity="center" />
-
-                </LinearLayout>
+                <ImageView
+                    android:id="@+id/completionIcon"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginEnd="4dp"
+                    android:src="@drawable/ic_check_circle"
+                    android:visibility="gone"
+                    app:tint="@color/success_color" />
 
                 <TextView
-                    android:id="@+id/itemCountText"
+                    android:id="@+id/checkedCountText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
-                    android:text="0 items"
+                    android:text="0"
+                    android:textColor="@color/success_color"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="/"
                     android:textColor="@color/text_secondary"
                     android:textSize="14sp"
-                    android:textDirection="rtl"
-                    android:gravity="start|center_vertical" />
+                    android:layout_marginHorizontal="2dp" />
 
+                <TextView
+                    android:id="@+id/totalCountText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp" />
             </LinearLayout>
 
-            <ImageButton
-                android:id="@+id/editSectionButton"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_marginEnd="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_edit"
-                android:tint="@color/text_secondary" />
+            <TextView
+                android:id="@+id/itemCountText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:text="0 items"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
 
-            <ImageButton
-                android:id="@+id/deleteSectionButton"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_marginEnd="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_delete"
-                android:tint="@color/error_color" />
+            <!-- Container for action buttons -->
+            <LinearLayout
+                android:id="@+id/sectionActionsContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
 
-            <ImageButton
-                android:id="@+id/addItemButton"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_add"
-                android:tint="@color/accent_color" />
+                <ImageButton
+                    android:id="@+id/editSectionButton"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_marginEnd="4dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_edit"
+                    android:visibility="gone" 
+                    app:tint="@color/text_secondary" />
+
+                <ImageButton
+                    android:id="@+id/deleteSectionButton"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_marginEnd="4dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_delete"
+                    android:visibility="gone"
+                    app:tint="@color/text_secondary" />
+
+                <ImageButton
+                    android:id="@+id/addItemToSectionButton"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_add_circle"
+                    app:tint="@color/text_secondary" />
+            </LinearLayout>
 
         </LinearLayout>
 
@@ -149,6 +145,4 @@
             android:visibility="gone" />
 
     </LinearLayout>
-
 </com.google.android.material.card.MaterialCardView>
-

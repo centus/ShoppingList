@@ -17,18 +17,23 @@
     <color name="surface_color">#FFFFFFFF</color>
     <color name="section_header_color">#FFF1F3F4</color>
     <color name="section_content_color">#FFFFFFFF</color>
+    <color name="item_background">#FFFFFFFF</color> <!-- Added for consistency -->
     
     <!-- Text colors -->
-    <color name="text_primary">#FF202124</color>
-    <color name="text_secondary">#FF5F6368</color>
-    <color name="text_disabled">#FF9AA0A6</color>
+    <color name="text_primary">#FF202124</color> <!-- Dark for light theme -->
+    <color name="text_secondary">#FF5F6368</color> <!-- Medium dark for light theme -->
+    <color name="text_disabled">#FF9AA0A6</color> <!-- Light gray for light theme -->
     
     <!-- Status colors -->
     <color name="success_color">#FF34A853</color>
+    <color name="success_color_light">#E6F4EA</color>
     <color name="error_color">#FFEA4335</color>
     <color name="warning_color">#FFF9AB00</color>
     
     <!-- Checkbox colors -->
     <color name="checkbox_color">#FF6B73FF</color>
     <color name="checkbox_checked">#FF34A853</color>
+
+    <!-- Added for SectionAdapter -->
+    <color name="default_section_stroke_color">@color/text_disabled</color>
 </resources>

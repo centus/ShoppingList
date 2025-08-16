@@ -52,13 +52,14 @@ abstract class ShoppingDatabase : RoomDatabase() {
             val defaultSectionId = dao.insertSection(defaultSection)
             
             val sections = listOf(
-                Section(name = "ירקות ופירות", orderIndex = 1),
-                Section(name = "מוצרי חלב", orderIndex = 2),
-                Section(name = "בשר", orderIndex = 3),
-                Section(name = "מזווה", orderIndex = 4),
-                Section(name = "קפוא", orderIndex = 5),
-                Section(name = "משקאות", orderIndex = 6),
-                Section(name = "בית", orderIndex = 7)
+                Section(name = "ירקות ופירות", orderIndex = 1, isDefault = false),
+                Section(name = "מוצרי חלב", orderIndex = 2, isDefault = false),
+                Section(name = "בשר", orderIndex = 3, isDefault = false),
+                Section(name = "מזווה", orderIndex = 4, isDefault = false),
+                Section(name = "קפואים", orderIndex = 5, isDefault = false),
+                Section(name = "משקאות", orderIndex = 6, isDefault = false),
+                Section(name = "מוצרי ניקיון", orderIndex = 7, isDefault = false),
+                Section(name = "כללי", orderIndex = 8, isDefault = false)
             )
             
             val sectionIds = mutableListOf<Long>()

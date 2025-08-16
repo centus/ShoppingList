@@ -6,6 +6,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -33,13 +34,18 @@ class MainActivity : AppCompatActivity() {
     private lateinit var viewModel: ShoppingViewModel
     private lateinit var sectionAdapter: SectionAdapter
 
-    // For Import/Export
-    private val exportListLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        // Handle result if needed, though ACTION_SEND often doesn't give a direct result
+    private val exportListLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        // ACTION_SEND often doesn't give a direct result, but one could log or toast here if desired
     }
-    private val importListLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    private val importJsonLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
-            importListFromUri(it)
+            importListFromUri(it, false) // false indicates it's a JSON import
+        }
+    }
+
+    private val importTxtLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let {
+            importListFromUri(it, true) // true indicates it's a TXT import
         }
     }
 
@@ -79,8 +85,12 @@ class MainActivity : AppCompatActivity() {
                 exportShoppingList()
                 true
             }
-            R.id.action_import_list -> {
-                importShoppingList()
+            R.id.action_import_list_json -> {
+                importShoppingListJson()
+                true
+            }
+            R.id.action_import_list_txt -> {
+                importShoppingListTxt()
                 true
             }
             R.id.action_reset_shopping_list -> {
@@ -107,62 +117,50 @@ class MainActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.confirm_reset_all_title))
             .setMessage(getString(R.string.confirm_reset_all_message))
-            .setPositiveButton(R.string.delete) { _, _ -> 
-                viewModel.resetAllItemCheckedStates()
+            .setPositiveButton(R.string.delete) { _, _ ->
+                viewModel.performFullShoppingReset()
             }
-            .setNegativeButton(getString(R.string.cancel), null) // Corrected this line
+            .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
 
     private fun setupDatabase() {
-        // Repository is instantiated here but should not be a member field of MainActivity
         val localRepository = ShoppingRepository(
-            ShoppingDatabase.getDatabase(this, CoroutineScope(SupervisorJob() + Dispatchers.IO)).shoppingDao(),
-            CoroutineScope(SupervisorJob() + Dispatchers.IO)
+            ShoppingDatabase.getDatabase(this, CoroutineScope(SupervisorJob() + Dispatchers.IO)).shoppingDao()
         )
-        val factory = ShoppingViewModelFactory(localRepository) // Pass localRepository
+        val factory = ShoppingViewModelFactory(localRepository)
         viewModel = ViewModelProvider(this, factory)[ShoppingViewModel::class.java]
     }
 
     private fun setupRecyclerView() {
         sectionAdapter = SectionAdapter(
-            isShoppingMode = false, 
+            context = this@MainActivity,
+            isShoppingMode = viewModel.isShoppingMode.value ?: false,
             onItemChecked = { item, isChecked ->
                 viewModel.toggleItemChecked(item, isChecked)
             },
-            onItemEdit = { item, currentName ->
-                showEditItemDialog(item, currentName)
+            onItemPlanned = { item ->
+                viewModel.toggleItemPlanned(item)
+            },
+            onItemEdit = { item ->
+                showEditItemDialog(item)
             },
             onItemDelete = { item ->
-                showDeleteItemConfirmation(item)
+                showDeleteItemConfirmationDialog(item)
             },
-            onItemMove = { item, currentItemSectionId ->
-                val currentSection = viewModel.allSectionsWithItems.value
-                    ?.firstOrNull { it.section.id == currentItemSectionId }?.section
-
-                if (currentSection != null) {
-                    showMoveItemDialog(item, currentSection)
-                } else {
-                    Log.e("MainActivity", "Current section with ID $currentItemSectionId not found for item ${item.name}")
-                }
+            onItemMove = { item ->
+                showMoveItemDialog(item)
             },
-            onSectionEdit = { sectionId, currentName ->
-                 val sectionToEdit = viewModel.allSectionsWithItems.value
-                    ?.map { it.section }
-                    ?.find { it.id == sectionId }
-                if(sectionToEdit != null) {
-                    showEditSectionDialog(sectionToEdit, currentName)
-                }
+            onSectionEdit = { section ->
+                showEditSectionDialog(section)
             },
-            onSectionDelete = { sectionId ->
-                val sectionToDelete = viewModel.allSectionsWithItems.value
-                    ?.map { it.section }
-                    ?.find { it.id == sectionId }
-                if(sectionToDelete != null) {
-                    showDeleteSectionConfirmation(sectionToDelete)
-                }
+            onSectionDelete = { section ->
+                showDeleteSectionConfirmationDialog(section)
             },
-            onAddItem = { sectionId ->
+            onSectionExpanded = { section, isExpanded ->
+                viewModel.updateSectionExpansionState(section, isExpanded)
+            },
+            onAddItemToSection = { sectionId ->
                 showAddItemDialog(sectionId)
             }
         )
@@ -170,22 +168,21 @@ class MainActivity : AppCompatActivity() {
         binding.sectionsRecyclerView.apply {
             layoutManager = LinearLayoutManager(this@MainActivity)
             adapter = sectionAdapter
+            itemAnimator = null
         }
     }
 
     private fun setupObservers() {
-        viewModel.allSectionsWithItems.observe(this) { sections ->
-            val logOutput = sections.joinToString(separator = "\n") { sectionWithItems ->
+        viewModel.displayedList.observe(this) { sections ->
+            Log.d("MainActivity", "displayedList observer triggered. Section count: ${sections.size}")
+            sections.forEach { sectionWithItems ->
                 val itemNames = sectionWithItems.items.joinToString(", ") { shoppingItem ->
-                    "'${shoppingItem.name}' (id: ${shoppingItem.id}, secId: ${shoppingItem.sectionId})"
+                    "\'${shoppingItem.name}\' (id: ${shoppingItem.id}, planned: ${shoppingItem.isPlanned}, checked: ${shoppingItem.isChecked})"
                 }
-                "Section '${sectionWithItems.section.name}' (id: ${sectionWithItems.section.id}): [${itemNames}]"
+                Log.d("MainActivity", "Section \'${sectionWithItems.section.name}\': [$itemNames]")
             }
-            Log.d("MainActivity", "allSectionsWithItems observer triggered. Sections:\n$logOutput")
-
-            sectionAdapter.updateSections(sections)
+            sectionAdapter.submitList(sections)
         }
-
 
         viewModel.uncheckedItemsCount.observe(this) { count ->
             binding.uncheckedCountText.text = "$count ${getString(R.string.items_left)}"
@@ -196,8 +193,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         viewModel.isShoppingMode.observe(this) { isShoppingMode ->
+            Log.d("MainActivity", "isShoppingMode observer: $isShoppingMode")
             updateUIForMode(isShoppingMode)
-            invalidateOptionsMenu() 
+            invalidateOptionsMenu()
         }
     }
 
@@ -235,10 +233,10 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun showEditSectionDialog(section: Section, currentName: String) {
+    private fun showEditSectionDialog(section: Section) {
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_input, null)
         val editText = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.inputEditText)
-        editText.setText(currentName)
+        editText.setText(section.name)
         editText.hint = getString(R.string.enter_section_name)
 
         AlertDialog.Builder(this)
@@ -247,14 +245,14 @@ class MainActivity : AppCompatActivity() {
             .setPositiveButton(getString(R.string.save)) { _, _ ->
                 val newName = editText.text.toString().trim()
                 if (newName.isNotEmpty()) {
-                    viewModel.updateSection(section, newName)
+                    viewModel.updateSectionName(section, newName)
                 }
             }
             .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
 
-    private fun showDeleteSectionConfirmation(section: Section) {
+    private fun showDeleteSectionConfirmationDialog(section: Section) {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.delete_section))
             .setMessage(getString(R.string.delete_section_message, section.name))
@@ -272,41 +270,39 @@ class MainActivity : AppCompatActivity() {
 
         val title = if (isAdHoc && viewModel.isShoppingMode.value == true) getString(R.string.add_ad_hoc_item) else getString(R.string.add_item)
 
-
         AlertDialog.Builder(this)
             .setTitle(title)
             .setView(dialogView)
             .setPositiveButton(getString(R.string.add)) { _, _ ->
                 val itemName = editText.text.toString().trim()
                 if (itemName.isNotEmpty()) {
-                    val adHocFlag = viewModel.isShoppingMode.value == true && isAdHoc
-                    viewModel.addItem(itemName, sectionId, adHocFlag)
+                     viewModel.addItem(itemName, sectionId, isAdHoc = (isAdHoc && viewModel.isShoppingMode.value == true))
                 }
             }
             .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
 
-    private fun showEditItemDialog(item: ShoppingItem, currentName: String) {
+    private fun showEditItemDialog(item: ShoppingItem) {
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_input, null)
         val editText = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.inputEditText)
-        editText.setText(currentName)
+        editText.setText(item.name)
         editText.hint = getString(R.string.enter_item_name)
 
-        AlertDialog.Builder(this) // Corrected this line
+        AlertDialog.Builder(this)
             .setTitle(getString(R.string.edit_item))
             .setView(dialogView)
             .setPositiveButton(getString(R.string.save)) { _, _ ->
                 val newName = editText.text.toString().trim()
                 if (newName.isNotEmpty()) {
-                    viewModel.updateItem(item, newName)
+                    viewModel.updateItemName(item, newName)
                 }
             }
             .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
 
-    private fun showDeleteItemConfirmation(item: ShoppingItem) {
+    private fun showDeleteItemConfirmationDialog(item: ShoppingItem) {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.delete_item))
             .setMessage(getString(R.string.delete_item_message, item.name))
@@ -317,31 +313,39 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun showMoveItemDialog(item: ShoppingItem, currentSection: Section) {
-        val allSections = viewModel.allSectionsWithItems.value?.map { it.section } ?: emptyList()
-        val availableSectionsToMoveTo = allSections.filter { it.id != currentSection.id && !it.isDefault }
+    private fun showMoveItemDialog(item: ShoppingItem) {
+        lifecycleScope.launch {
+            val allSections = viewModel.getAllSectionsNonLiveData()
+            val currentSection = allSections.firstOrNull { it.id == item.sectionId }
 
-        if (availableSectionsToMoveTo.isNotEmpty()) {
-            val sectionNames = availableSectionsToMoveTo.map { it.name }.toTypedArray()
-            val currentSectionIndex = -1 
+            if (currentSection == null) {
+                Toast.makeText(this@MainActivity, "Error: Current section not found for item.", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
 
-            AlertDialog.Builder(this)
-                .setTitle(getString(R.string.move_item_to_section, item.name))
-                .setSingleChoiceItems(sectionNames, currentSectionIndex) { dialog, which ->
-                    val selectedNewSection = availableSectionsToMoveTo[which]
-                    viewModel.moveItemToSection(item, selectedNewSection.id)
-                    dialog.dismiss()
-                }
-                .setNegativeButton(getString(R.string.cancel), null)
-                .show()
-        } else {
-             android.widget.Toast.makeText(this, getString(R.string.no_other_sections_to_move), android.widget.Toast.LENGTH_SHORT).show()
+            val availableSectionsToMoveTo = allSections.filter { it.id != currentSection.id && !it.isDefault }
+
+            if (availableSectionsToMoveTo.isNotEmpty()) {
+                val sectionNames = availableSectionsToMoveTo.map { it.name }.toTypedArray()
+
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle(getString(R.string.move_item_to_section, item.name))
+                    .setSingleChoiceItems(sectionNames, -1) { dialog, which ->
+                        val selectedNewSection = availableSectionsToMoveTo[which]
+                        viewModel.moveItemToSection(item, selectedNewSection.id)
+                        dialog.dismiss()
+                    }
+                    .setNegativeButton(getString(R.string.cancel), null)
+                    .show()
+            } else {
+                Toast.makeText(this@MainActivity, getString(R.string.no_other_sections_to_move), Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
     private fun exportShoppingList() {
         lifecycleScope.launch {
-            val sectionsWithItems = viewModel.allSectionsWithItems.value ?: return@launch
+            val sectionsWithItems = viewModel.displayedList.value ?: return@launch
             val exportData = sectionsWithItems.map { swi ->
                 SimpleSection(swi.section.name, swi.items.map { SimpleItem(it.name) })
             }
@@ -357,34 +361,36 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun importShoppingList() {
-        importListLauncher.launch("text/plain")
+    private fun importShoppingListJson() {
+        importJsonLauncher.launch("application/json")
     }
 
-    private fun importListFromUri(uri: android.net.Uri) {
+    private fun importShoppingListTxt() {
+        importTxtLauncher.launch("text/plain")
+    }
+
+    // Consolidated import logic
+    private fun importListFromUri(uri: android.net.Uri, isTxtImport: Boolean) {
         lifecycleScope.launch {
             try {
-                val inputStream = contentResolver.openInputStream(uri)
-                val reader = BufferedReader(InputStreamReader(inputStream))
-                val stringBuilder = StringBuilder()
-                var line: String?
-                while (reader.readLine().also { line = it } != null) {
-                    stringBuilder.append(line)
+                contentResolver.openInputStream(uri)?.use { inputStream ->
+                    BufferedReader(InputStreamReader(inputStream)).use { reader ->
+                        val jsonString = reader.readText()
+                        Log.d("MainActivity", "Imported content (isTxt: $isTxtImport): $jsonString")
+
+                        // Both TXT and JSON imports will now use the same full overwrite logic
+                        val typeToken = object : TypeToken<List<SimpleSection>>() {}.type
+                        val importedSections: List<SimpleSection> = Gson().fromJson(jsonString, typeToken)
+                        viewModel.importShoppingListData(importedSections)
+
+                        val toastMessage = if (isTxtImport) "TXT List imported successfully!" else "JSON List imported successfully!"
+                        Toast.makeText(this@MainActivity, toastMessage, Toast.LENGTH_SHORT).show()
+                        Log.d("MainActivity", "Import process initiated via ViewModel.")
+                    }
                 }
-                val jsonString = stringBuilder.toString()
-                Log.d("MainActivity", "Imported JSON: $jsonString")
-
-                val typeToken = object : TypeToken<List<SimpleSection>>() {}.type
-                val importedSections: List<SimpleSection> = Gson().fromJson(jsonString, typeToken)
-
-                viewModel.importShoppingListData(importedSections) 
-
-                Log.d("MainActivity", "Import process initiated via ViewModel.")
-
             } catch (e: Exception) {
                 Log.e("MainActivity", "Error importing list", e)
-                val errorMessage = "Error importing list: ${e.message}" 
-                android.widget.Toast.makeText(this@MainActivity, errorMessage, android.widget.Toast.LENGTH_LONG).show()
+                Toast.makeText(this@MainActivity, "Error importing list: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="?attr/selectableItemBackground"
@@ -22,34 +23,15 @@
         android:text="Item Name"
         android:textColor="@color/text_primary"
         android:textSize="16sp"
-        android:textDirection="rtl"
+        android:textDirection="locale"
         android:gravity="start|center_vertical" />
 
     <ImageButton
-        android:id="@+id/editItemButton"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:layout_marginEnd="4dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:src="@drawable/ic_edit"
-        android:tint="@color/text_secondary" />
-
-    <ImageButton
-        android:id="@+id/moveItemButton"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:layout_marginEnd="4dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:src="@drawable/ic_move"
-        android:tint="@color/text_secondary" />
-
-    <ImageButton
-        android:id="@+id/deleteItemButton"
+        android:id="@+id/itemMenuButton" 
         android:layout_width="32dp"
         android:layout_height="32dp"
         android:background="?attr/selectableItemBackgroundBorderless"
-        android:src="@drawable/ic_delete"
-        android:tint="@color/error_color" />
+        android:src="@drawable/ic_more_vert" 
+        app:tint="@color/text_secondary" />
 
 </LinearLayout>
-

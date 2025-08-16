@@ -74,11 +74,13 @@
 
     <!-- Item count -->
     <string name="item_count">פריטים</string>
+    <string name="item_count_placeholder" translatable="false">%d items</string> <!-- Added -->
 
     <!-- Menu Actions -->
     <string name="action_reset_all">אפס הכל</string>
     <string name="action_share_list">שתף רשימה</string>
-    <string name="action_import_list">ייבא רשימה</string>
+    <string name="action_import_list_json">Import List (JSON)</string>
+    <string name="action_import_list_txt">Import Default (TXT)</string>
     <string name="action_reset_shopping_list">Reset Shopping List</string>
 
 </resources>
