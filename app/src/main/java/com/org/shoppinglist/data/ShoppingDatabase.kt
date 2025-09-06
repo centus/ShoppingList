@@ -70,7 +70,7 @@ abstract class ShoppingDatabase : RoomDatabase() {
             val dairyId = dao.insertSection(Section(name = "מוצרי חלב", orderIndex = sectionOrderIndex++, isDefault = false))
             val dairyItems = listOf(
                 "חלב", "חמאה", "פרומעז", "גבינה צהובה פרוסה", "גבינה צהובה פירורים", "בולגרית 24%", "פטה", "מוצרלה פרוסה",
-                "גבינה לבנה", "קוטג'", "שמנת חמוצה", "שמנת מתוקה", "יוגורטים 3%", "יוגורטים עם חלבון", "פרמזן", "שמרית", "אקטימל"
+                "גבינה לבנה", "קוטג'", "שמנת חמוצה", "שמנת מתוקה", "יוגורטים 3%", "יוגורטים עם חלבון", "פרמזן", "שמרית", "אקטימל", "ביצים"
             )
             dairyItems.forEachIndexed { index, itemName ->
                 dao.insertItem(ShoppingItem(sectionId = dairyId, name = itemName, orderIndex = index))
