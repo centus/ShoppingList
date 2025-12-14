@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
@@ -20,18 +21,34 @@ class ItemAdapter(
     private val onItemPlanned: (ShoppingItem) -> Unit,
     private val onItemEdit: (ShoppingItem) -> Unit,
     private val onItemDelete: (ShoppingItem) -> Unit,
-    private val onItemMove: (ShoppingItem) -> Unit
+    private val onItemMove: (ShoppingItem) -> Unit,
+    private val onItemQuantityChanged: (ShoppingItem, Int) -> Unit
 ) : ListAdapter<ShoppingItem, ItemAdapter.ShoppingItemViewHolder>(ShoppingItemDiffCallback()) {
 
     fun updateShoppingMode(newShoppingMode: Boolean) {
+        val oldShoppingMode = isShoppingMode
         isShoppingMode = newShoppingMode
-        notifyDataSetChanged() // Re-bind all visible items to reflect mode change
+        if (oldShoppingMode != newShoppingMode) {
+            notifyItemRangeChanged(0, itemCount, PAYLOAD_MODE_CHANGED)
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ShoppingItemViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_shopping_item, parent, false)
         return ShoppingItemViewHolder(view)
+    }
+
+    override fun onBindViewHolder(
+        holder: ShoppingItemViewHolder,
+        position: Int,
+        payloads: MutableList<Any>
+    ) {
+        if (payloads.contains(PAYLOAD_MODE_CHANGED)) {
+            holder.bindShoppingMode(getItem(position))
+        } else {
+            super.onBindViewHolder(holder, position, payloads)
+        }
     }
 
     override fun onBindViewHolder(holder: ShoppingItemViewHolder, position: Int) {
@@ -41,46 +58,35 @@ class ItemAdapter(
     inner class ShoppingItemViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val itemName: TextView = itemView.findViewById(R.id.itemName)
         private val itemCheckBox: CheckBox = itemView.findViewById(R.id.itemCheckBox)
-        private val itemEditButton: ImageButton = itemView.findViewById(R.id.itemEditButton) // ADDED
-        private val itemDeleteButton: ImageButton = itemView.findViewById(R.id.itemDeleteButton) // ADDED
+        private val itemEditButton: ImageButton = itemView.findViewById(R.id.itemEditButton)
+        private val itemDeleteButton: ImageButton = itemView.findViewById(R.id.itemDeleteButton)
         private val itemMoveButton: ImageButton = itemView.findViewById(R.id.itemMoveButton)
+
+        private val itemQuantity: TextView = itemView.findViewById(R.id.itemQuantity)
+        private val quantityEditor: LinearLayout = itemView.findViewById(R.id.quantityEditor)
+        private val quantityValue: TextView = itemView.findViewById(R.id.quantityValue)
+        private val increaseQuantityButton: ImageButton = itemView.findViewById(R.id.increaseQuantityButton)
+        private val decreaseQuantityButton: ImageButton = itemView.findViewById(R.id.decreaseQuantityButton)
 
         fun bind(shoppingItem: ShoppingItem) {
             itemName.text = shoppingItem.name
-            itemCheckBox.setOnCheckedChangeListener(null) // Clear listener before setting new state
+            quantityValue.text = shoppingItem.quantity.toString()
 
-            if (this@ItemAdapter.isShoppingMode) {
-                // SHOPPING MODE
-                itemCheckBox.isChecked = shoppingItem.isChecked
-                itemCheckBox.setOnCheckedChangeListener { _, isNowChecked ->
-                    if (adapterPosition != RecyclerView.NO_POSITION) {
-                        onItemChecked(getItem(adapterPosition), isNowChecked)
+            bindShoppingMode(shoppingItem)
+
+            itemCheckBox.setOnCheckedChangeListener { _, isNowChecked ->
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    val item = getItem(adapterPosition)
+                    if (isShoppingMode) {
+                        onItemChecked(item, isNowChecked)
+                    } else {
+                        onItemPlanned(item)
                     }
                 }
-                itemName.paintFlags = if (shoppingItem.isChecked) {
-                    itemName.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
-                } else {
-                    itemName.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
-                }
-                itemEditButton.visibility = View.GONE
-                itemDeleteButton.visibility = View.GONE
-                itemMoveButton.visibility = View.GONE
-            } else {
-                // PLANNING MODE
-                itemCheckBox.isChecked = shoppingItem.isPlanned
-                itemCheckBox.setOnCheckedChangeListener { _, _ ->
-                    if (adapterPosition != RecyclerView.NO_POSITION) {
-                        onItemPlanned(getItem(adapterPosition))
-                    }
-                }
-                itemName.paintFlags = itemName.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv() // No strike-through
-                itemEditButton.visibility = View.VISIBLE
-                itemDeleteButton.visibility = View.VISIBLE
-                itemMoveButton.visibility = View.VISIBLE
-
             }
+
             itemName.setOnClickListener {
-                itemCheckBox.toggle() // This will trigger the CheckBox's own OnCheckedChangeListener
+                itemCheckBox.toggle()
             }
 
             itemEditButton.setOnClickListener {
@@ -99,46 +105,65 @@ class ItemAdapter(
                     onItemMove(getItem(adapterPosition))
                 }
             }
-        }
 
-        private fun showItemPopupMenu(anchorView: View, shoppingItem: ShoppingItem) {
-            val popup = PopupMenu(itemView.context, anchorView)
-            popup.menuInflater.inflate(R.menu.shopping_item_menu, popup.menu)
-            popup.setOnMenuItemClickListener { menuItem ->
-                when (menuItem.itemId) {
-                    R.id.action_edit_item -> {
-                        onItemEdit(shoppingItem)
-                        true
-                    }
-                    R.id.action_delete_item -> {
-                        onItemDelete(shoppingItem)
-                        true
-                    }
-                    R.id.action_move_item -> {
-                        onItemMove(shoppingItem)
-                        true
-                    }
-                    else -> false
+            increaseQuantityButton.setOnClickListener {
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    val item = getItem(adapterPosition)
+                    onItemQuantityChanged(item, item.quantity + 1)
                 }
             }
-            popup.show()
+
+            decreaseQuantityButton.setOnClickListener {
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    val item = getItem(adapterPosition)
+                    if (item.quantity > 1) {
+                        onItemQuantityChanged(item, item.quantity - 1)
+                    }
+                }
+            }
         }
+
+        fun bindShoppingMode(shoppingItem: ShoppingItem) {
+            if (this@ItemAdapter.isShoppingMode) {
+                // SHOPPING MODE
+                itemQuantity.visibility = if (shoppingItem.quantity > 1) View.VISIBLE else View.GONE
+                itemQuantity.text = "x${shoppingItem.quantity}"
+                quantityEditor.visibility = View.GONE
+
+                itemCheckBox.isChecked = shoppingItem.isChecked
+                itemName.paintFlags = if (shoppingItem.isChecked) {
+                    itemName.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
+                } else {
+                    itemName.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
+                }
+                itemEditButton.visibility = View.GONE
+                itemDeleteButton.visibility = View.GONE
+                itemMoveButton.visibility = View.GONE
+            } else {
+                // PLANNING MODE
+                itemQuantity.visibility = View.GONE
+                quantityEditor.visibility = View.VISIBLE
+
+                itemCheckBox.isChecked = shoppingItem.isPlanned
+                itemName.paintFlags = itemName.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv() // No strike-through
+                itemEditButton.visibility = View.VISIBLE
+                itemDeleteButton.visibility = View.VISIBLE
+                itemMoveButton.visibility = View.VISIBLE
+            }
+        }
+    }
+
+    companion object {
+        private const val PAYLOAD_MODE_CHANGED = "PAYLOAD_MODE_CHANGED"
     }
 }
 
-// Top-level class in the same file
 class ShoppingItemDiffCallback : DiffUtil.ItemCallback<ShoppingItem>() {
     override fun areItemsTheSame(oldItem: ShoppingItem, newItem: ShoppingItem): Boolean {
         return oldItem.id == newItem.id
     }
 
     override fun areContentsTheSame(oldItem: ShoppingItem, newItem: ShoppingItem): Boolean {
-        // Compare all fields that determine if the content is the same
-        return oldItem.name == newItem.name &&
-               oldItem.isChecked == newItem.isChecked &&
-               oldItem.isPlanned == newItem.isPlanned &&
-               oldItem.sectionId == newItem.sectionId &&
-               oldItem.isAdHoc == newItem.isAdHoc &&
-               oldItem.orderIndex == newItem.orderIndex
+        return oldItem == newItem
     }
 }

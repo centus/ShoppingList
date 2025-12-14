@@ -174,6 +174,13 @@ class ShoppingViewModel(private val repository: ShoppingRepository) : ViewModel(
             repository.updateItem(updatedItem)
         }
     }
+    
+    fun updateItemQuantity(item: ShoppingItem, newQuantity: Int) {
+        viewModelScope.launch {
+            val updatedItem = item.copy(quantity = newQuantity)
+            repository.updateItem(updatedItem)
+        }
+    }
 
     fun deleteItem(item: ShoppingItem) {
         viewModelScope.launch {
@@ -212,6 +219,7 @@ class ShoppingViewModel(private val repository: ShoppingRepository) : ViewModel(
         viewModelScope.launch {
             repository.resetAllItemCheckedStates()
             repository.resetAllPlannedStates()
+            repository.resetAllItemQuantities()
             repository.deleteAdHocItems()
             _isShoppingMode.value = false
         }
@@ -235,7 +243,7 @@ class ShoppingViewModel(private val repository: ShoppingRepository) : ViewModel(
                 val section = Section(
                     name = simpleSection.name,
                     orderIndex = sectionOrder++,
-                    isDefault = false // Imported sections are generally not the default
+                    isDefault = false // Imported sections are generally not the aefault
                 )
                 val sectionId = repository.insertSection(section) // Make sure insertSection returns the ID
 
@@ -278,4 +286,3 @@ class ShoppingViewModelFactory(private val repository: ShoppingRepository) : Vie
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
-

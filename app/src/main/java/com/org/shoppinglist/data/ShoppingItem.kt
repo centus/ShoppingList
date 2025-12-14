@@ -20,6 +20,7 @@ data class ShoppingItem(
     val id: Long = 0,
     var name: String,
     var sectionId: Long,
+    var quantity: Int = 1,
     var isChecked: Boolean = false,
     var isAdHoc: Boolean = false, // Item added quickly during shopping mode
     var orderIndex: Int = 0,      // For ordering within a section

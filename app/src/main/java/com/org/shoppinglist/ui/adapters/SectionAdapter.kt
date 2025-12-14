@@ -32,7 +32,8 @@ class SectionAdapter(
     private val onItemPlanned: (ShoppingItem) -> Unit,
     private val onItemEdit: (ShoppingItem) -> Unit,
     private val onItemDelete: (ShoppingItem) -> Unit,
-    private val onItemMove: (ShoppingItem) -> Unit
+    private val onItemMove: (ShoppingItem) -> Unit,
+    private val onItemQuantityChanged: (ShoppingItem, Int) -> Unit
 ) : ListAdapter<SectionWithItems, SectionAdapter.SectionViewHolder>(SectionDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SectionViewHolder {
@@ -41,15 +42,29 @@ class SectionAdapter(
         return SectionViewHolder(view)
     }
 
+    override fun onBindViewHolder(
+        holder: SectionViewHolder,
+        position: Int,
+        payloads: MutableList<Any>
+    ) {
+        if (payloads.contains(PAYLOAD_MODE_CHANGED)) {
+            holder.bindShoppingMode(getItem(position))
+        } else {
+            super.onBindViewHolder(holder, position, payloads)
+        }
+    }
+
     override fun onBindViewHolder(holder: SectionViewHolder, position: Int) {
         holder.bind(getItem(position))
     }
 
     fun updateShoppingMode(newShoppingMode: Boolean) {
+        val oldShoppingMode = isShoppingMode
         isShoppingMode = newShoppingMode
-        notifyDataSetChanged() // Consider more granular updates if performance is an issue
+        if (oldShoppingMode != newShoppingMode) {
+            notifyItemRangeChanged(0, itemCount, PAYLOAD_MODE_CHANGED)
+        }
     }
-
 
     inner class SectionViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val sectionTitle: TextView = itemView.findViewById(R.id.sectionTitle)
@@ -57,7 +72,6 @@ class SectionAdapter(
         private val expandButton: ImageButton = itemView.findViewById(R.id.expandButton)
         private val sectionHeaderContainer: LinearLayout = itemView.findViewById(R.id.sectionHeaderContainer)
 
-        // Updated buttons
         private val addItemToSectionButton: ImageButton = itemView.findViewById(R.id.addItemToSectionButton)
         private val editSectionButton: ImageButton = itemView.findViewById(R.id.editSectionButton)
         private val deleteSectionButton: ImageButton = itemView.findViewById(R.id.deleteSectionButton)
@@ -68,18 +82,17 @@ class SectionAdapter(
         private val completionIcon: View = itemView.findViewById(R.id.completionIcon)
         private val itemCountText: TextView = itemView.findViewById(R.id.itemCountText)
 
-
-        private lateinit var section: Section
-        private lateinit var itemAdapter: ItemAdapter // Using the external ItemAdapter
+        private val itemAdapter: ItemAdapter
 
         init {
-            itemAdapter = ItemAdapter( // Instantiate the external adapter
+            itemAdapter = ItemAdapter(
                 isShoppingMode = isShoppingMode,
                 onItemChecked = { item, isChecked -> onItemChecked(item, isChecked) },
                 onItemPlanned = { item -> onItemPlanned(item) },
                 onItemEdit = { item -> onItemEdit(item) },
                 onItemDelete = { item -> onItemDelete(item) },
-                onItemMove = { item -> onItemMove(item) }
+                onItemMove = { item -> onItemMove(item) },
+                onItemQuantityChanged = { item, quantity -> onItemQuantityChanged(item, quantity) }
             )
             itemsRecyclerView.adapter = itemAdapter
             itemsRecyclerView.layoutManager = LinearLayoutManager(itemView.context)
@@ -91,7 +104,7 @@ class SectionAdapter(
                     onSectionExpanded(currentSectionWithItems.section, newExpandedState)
                 }
             }
-            sectionHeaderContainer.setOnClickListener { // << CLICK LISTENER MOVED HERE
+            sectionHeaderContainer.setOnClickListener { 
                 if (adapterPosition != RecyclerView.NO_POSITION) {
                     val currentSectionWithItems = getItem(adapterPosition)
                     val newExpandedState = !currentSectionWithItems.section.isExpanded
@@ -116,38 +129,37 @@ class SectionAdapter(
         }
 
         fun bind(sectionWithItems: SectionWithItems) {
-            this.section = sectionWithItems.section
-            sectionTitle.text = section.name
-            itemsRecyclerView.visibility = if (section.isExpanded) View.VISIBLE else View.GONE
+            sectionTitle.text = sectionWithItems.section.name
+            itemsRecyclerView.visibility = if (sectionWithItems.section.isExpanded) View.VISIBLE else View.GONE
             expandButton.setImageResource(
-                if (section.isExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more
+                if (sectionWithItems.section.isExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more
             )
 
             val sectionCard = itemView as? MaterialCardView
-            if (section.isDefault) {
+            if (sectionWithItems.section.isDefault) {
                 sectionCard?.strokeColor = ContextCompat.getColor(context, R.color.default_section_stroke_color)
                 sectionCard?.strokeWidth = context.resources.getDimensionPixelSize(R.dimen.default_section_stroke_width)
             } else {
                 sectionCard?.strokeWidth = 0
             }
 
-
-            itemAdapter.updateShoppingMode(isShoppingMode) // Ensure inner adapter mode is also updated
             itemAdapter.submitList(sectionWithItems.items)
 
-            // Update button visibility based on mode and if it's a default section
-            if (!isShoppingMode && !section.isDefault) {
+            bindShoppingMode(sectionWithItems)
+        }
+
+        fun bindShoppingMode(sectionWithItems: SectionWithItems) {
+            itemAdapter.updateShoppingMode(isShoppingMode)
+
+            if (!isShoppingMode && !sectionWithItems.section.isDefault) {
                 editSectionButton.visible()
                 deleteSectionButton.visible()
             } else {
                 editSectionButton.gone()
                 deleteSectionButton.gone()
             }
-            // addItemToSectionButton is always visible for now, or its visibility could be tied to !isShoppingMode
             addItemToSectionButton.visible()
 
-
-            // Progress and item count display logic
             if (isShoppingMode) {
                 shoppingProgressContainer.visible()
                 itemCountText.gone()
@@ -160,8 +172,6 @@ class SectionAdapter(
                 if (totalCount > 0 && checkedCount == totalCount) {
                     checkedCountText.setTextColor(ContextCompat.getColor(context, R.color.success_color))
                 } else {
-                    // Use a default or less prominent color if not fully complete
-                    // For now, let's keep it success_color or define a different one for partial
                     checkedCountText.setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
                 }
 
@@ -176,24 +186,18 @@ class SectionAdapter(
             }
         }
     }
+
+    companion object {
+        private const val PAYLOAD_MODE_CHANGED = "PAYLOAD_MODE_CHANGED"
+    }
 }
 
-
-// Top-level class in the same file as SectionAdapter
 class SectionDiffCallback : DiffUtil.ItemCallback<SectionWithItems>() {
     override fun areItemsTheSame(oldItem: SectionWithItems, newItem: SectionWithItems): Boolean {
         return oldItem.section.id == newItem.section.id
     }
 
     override fun areContentsTheSame(oldItem: SectionWithItems, newItem: SectionWithItems): Boolean {
-        // Explicitly check if the expansion state is different.
-        // If it is, the content is considered different for UI purposes.
-        if (oldItem.section.isExpanded != newItem.section.isExpanded) {
-            return false
-        }
-        // If expansion state is the same, then compare other relevant properties
-        // that define the "content" of the section for display.
-        return oldItem.section.name == newItem.section.name &&
-               oldItem.items == newItem.items
+        return oldItem.section.isExpanded == newItem.section.isExpanded && oldItem.items == newItem.items
     }
 }

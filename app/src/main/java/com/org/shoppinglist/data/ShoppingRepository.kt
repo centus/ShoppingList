@@ -25,6 +25,10 @@ class ShoppingRepository(private val dao: ShoppingDao) {
     }
 
     suspend fun deleteSection(section: Section) {
+        val defaultSectionId = dao.getDefaultSectionId()
+        if (defaultSectionId != null) {
+            dao.moveItemsToSection(section.id, defaultSectionId)
+        }
         dao.deleteSection(section)
     }
 
@@ -50,6 +54,10 @@ class ShoppingRepository(private val dao: ShoppingDao) {
 
     suspend fun resetAllPlannedStates() {
         dao.resetAllPlannedStates()
+    }
+    
+    suspend fun resetAllItemQuantities() {
+        dao.resetAllItemQuantities()
     }
 
     suspend fun deleteAdHocItems() {

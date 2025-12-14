@@ -25,6 +25,9 @@ interface ShoppingDao {
     @Query("SELECT * FROM sections WHERE isDefault = 1 LIMIT 1")
     suspend fun getDefaultSection(): Section?
 
+    @Query("SELECT id FROM sections WHERE isDefault = 1 LIMIT 1")
+    suspend fun getDefaultSectionId(): Long?
+
     @Query("DELETE FROM sections") // Added for full TXT import
     suspend fun deleteAllSections()
 
@@ -47,6 +50,9 @@ interface ShoppingDao {
     @Query("SELECT * FROM shopping_items WHERE id = :itemId")
     suspend fun getItemById(itemId: Long): ShoppingItem?
 
+    @Query("UPDATE shopping_items SET sectionId = :toSectionId WHERE sectionId = :fromSectionId")
+    suspend fun moveItemsToSection(fromSectionId: Long, toSectionId: Long)
+
     // Combined operations
     @Transaction
     @Query("SELECT * FROM sections WHERE id = :sectionId")
@@ -58,6 +64,9 @@ interface ShoppingDao {
 
     @Query("UPDATE shopping_items SET isPlanned = 0 WHERE isAdHoc = 0")
     suspend fun resetAllPlannedStates()
+
+    @Query("UPDATE shopping_items SET quantity = 1")
+    suspend fun resetAllItemQuantities()
 
     @Query("DELETE FROM shopping_items WHERE isAdHoc = 1")
     suspend fun deleteAdHocItems()

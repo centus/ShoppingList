@@ -154,6 +154,9 @@ class MainActivity : AppCompatActivity() {
             onItemMove = { item ->
                 showMoveItemDialog(item)
             },
+            onItemQuantityChanged = { item, newQuantity ->
+                viewModel.updateItemQuantity(item, newQuantity)
+            },
             onSectionEdit = { section ->
                 showEditSectionDialog(section)
             },
@@ -188,16 +191,18 @@ class MainActivity : AppCompatActivity() {
         }
 
         viewModel.uncheckedItemsCount.observe(this) { count ->
-            binding.uncheckedCountText.text = "$count ${getString(R.string.items_left)}"
+            binding.uncheckedCountText.text = getString(R.string.items_left_placeholder, count)
         }
 
         viewModel.checkedItemsCount.observe(this) { count ->
-            binding.checkedCountText.text = "$count ${getString(R.string.items_done)}"
+            binding.checkedCountText.text = getString(R.string.items_done_placeholder, count)
         }
 
         viewModel.isShoppingMode.observe(this) { isShoppingMode ->
             Log.d("MainActivity", "isShoppingMode observer: $isShoppingMode")
-            updateUIForMode(isShoppingMode)
+            binding.modeToggleButton.text = if (isShoppingMode) getString(R.string.shopping_mode) else getString(R.string.planning_mode)
+            binding.addSectionFab.visibility = if (isShoppingMode) android.view.View.GONE else android.view.View.VISIBLE
+            sectionAdapter.updateShoppingMode(isShoppingMode)
             invalidateOptionsMenu()
         }
     }
@@ -210,12 +215,6 @@ class MainActivity : AppCompatActivity() {
         binding.addSectionFab.setOnClickListener {
             showAddSectionDialog()
         }
-    }
-
-    private fun updateUIForMode(isShoppingMode: Boolean) {
-        binding.modeToggleButton.text = if (isShoppingMode) getString(R.string.shopping_mode) else getString(R.string.planning_mode)
-        binding.addSectionFab.visibility = if (isShoppingMode) android.view.View.GONE else android.view.View.VISIBLE
-        sectionAdapter.updateShoppingMode(isShoppingMode)
     }
 
     private fun showAddSectionDialog() {
@@ -271,7 +270,7 @@ class MainActivity : AppCompatActivity() {
         val editText = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.inputEditText)
         editText.hint = getString(R.string.enter_item_name)
 
-        val title = if (isAdHoc && viewModel.isShoppingMode.value == true) getString(R.string.add_ad_hoc_item) else getString(R.string.add_item)
+        val title = if (isAdHoc) getString(R.string.add_ad_hoc_item) else getString(R.string.add_item)
 
         AlertDialog.Builder(this)
             .setTitle(title)
@@ -279,7 +278,7 @@ class MainActivity : AppCompatActivity() {
             .setPositiveButton(getString(R.string.add)) { _, _ ->
                 val itemName = editText.text.toString().trim()
                 if (itemName.isNotEmpty()) {
-                     viewModel.addItem(itemName, sectionId, isAdHoc = (isAdHoc && viewModel.isShoppingMode.value == true))
+                     viewModel.addItem(itemName, sectionId, isAdHoc = isAdHoc)
                 }
             }
             .setNegativeButton(getString(R.string.cancel), null)
