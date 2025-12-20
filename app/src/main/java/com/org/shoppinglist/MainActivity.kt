@@ -357,7 +357,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             val exportData = sectionsWithItems.map { swi ->
-                com.org.shoppinglist.data.SimpleSection(swi.section.name, swi.items.map { com.org.shoppinglist.data.SimpleItem(it.name, it.isPlanned) }) // it.isPlanned added here
+                SimpleSection(swi.section.name, swi.items.map { SimpleItem(it.name, it.isPlanned) }) // it.isPlanned added here
             }
             val gson = Gson()
             val jsonString = gson.toJson(exportData)

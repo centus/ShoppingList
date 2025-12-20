@@ -35,7 +35,7 @@ abstract class ShoppingDatabase : RoomDatabase() {
 
     private class ShoppingDatabaseCallback(
         private val scope: CoroutineScope
-    ) : RoomDatabase.Callback() {
+    ) : Callback() {
 
         override fun onCreate(db: SupportSQLiteDatabase) {
             super.onCreate(db)
@@ -48,7 +48,7 @@ abstract class ShoppingDatabase : RoomDatabase() {
 
         suspend fun populateDatabase(dao: ShoppingDao) {
             // Section: לא מוקצה
-            val unassignedSectionId = dao.insertSection(Section(name = "לא מוקצה", orderIndex = 0, isDefault = true))
+            dao.insertSection(Section(name = "לא מוקצה", orderIndex = 0, isDefault = true))
             // This section has no items by default as per your JSON.
 
             var sectionOrderIndex = 1 // Start next section index from 1

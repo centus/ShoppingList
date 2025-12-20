@@ -26,3 +26,4 @@ data class ShoppingItem(
     var orderIndex: Int = 0,      // For ordering within a section
     var isPlanned: Boolean = true // New field: true if selected in planning mode for the shopping trip
 )
+

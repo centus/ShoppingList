@@ -1,12 +1,8 @@
 package com.org.shoppinglist.data
 
-import android.util.Log
 import androidx.lifecycle.LiveData
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class ShoppingRepository(private val dao: ShoppingDao) {
 
@@ -73,3 +69,4 @@ class ShoppingRepository(private val dao: ShoppingDao) {
     // The importToDefaultSection method is now removed as TXT import will be a full overwrite.
 
 }
+

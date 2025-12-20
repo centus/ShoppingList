@@ -24,7 +24,6 @@
     <string name="move_item">העבר פריט</string>
     <string name="move_item_to_section">העבר \"%1$s\" ל...</string>
     <string name="confirm_reset_all_title">איפוס רשימת קניות</string>
-    <string name="confirm_reset_all_message">האם לאפס את רשימת הקניות הנוכחית?</string>
     <string name="confirm_reset_shopping_list_title">איפוס קנייה נוכחית</string>
 
 
@@ -40,6 +39,7 @@
     <string name="delete_item_message">האם אתה בטוח שברצונך למחוק את \"%1$s\"?</string>
     <string name="no_other_sections_to_move">אין קטגוריות אחרות להעביר את פריט זה.</string>
     <string name="confirm_reset_shopping_list_message">האם אתה בטוח שברצונך לאפס את הקנייה הנוכחית? כל הפריטים יחזרו למצב לא מסומן, וכל הפריטים שנוספו במהלך הקניות האלו יוסרו.</string>
+    <string name="confirm_reset_all_message">פעולה זו תמחק את כל הקטגוריות והפריטים מהרשימה. האם אתה בטוח?</string>
 
 
     <!-- Input hints -->
@@ -50,7 +50,7 @@
     <string name="unassigned">לא מוקצה</string>
     <string name="produce">ירקות ופירות</string>
     <string name="dairy">מוצרי חלב</string>
-    <string name="meat">בשר</string>
+    <string name="meat">בשר</string>p
     <string name="pantry">מזווה</string>
     <string name="frozen">קפוא</string>
     <string name="beverages">משקאות</string>
@@ -66,7 +66,7 @@
     <string name="pasta">פסטה</string>
     <string name="rice">אורז</string>
     <string name="ice_cream">גלידה</string>
-    <string name="frozen_vegetables">ירקות פואים</string>
+    <string name="frozen_vegetables">ירקות קפואים</string>
     <string name="coffee">קפה</string>
     <string name="tea">תה</string>
     <string name="paper_towels">מגבות נייר</string>
@@ -74,7 +74,6 @@
 
     <!-- Item count -->
     <string name="item_count">פריטים</string>
-    <string name="item_count_placeholder" translatable="false">%d items</string> <!-- Added -->
 
     <!-- Menu Actions -->
     <string name="action_reset_all">איפוס רשימת קניות</string>
@@ -82,4 +81,11 @@
     <string name="action_import_list_txt">קבלת רשימה</string>
     <string name="action_reset_shopping_list">איפוס קנייה נוכחית</string>
 
+    <!-- Content Descriptions -->
+    <string name="add_new_section">Add new section</string>
+    <string name="content_description_decrease_quantity">Decrease quantity</string>
+    <string name="content_description_increase_quantity">Increase quantity</string>
+    <string name="content_description_move_item">Move Item</string>
+    <string name="content_description_edit_item">Edit Item</string>
+    <string name="content_description_delete_item">Delete Item</string>
 </resources>

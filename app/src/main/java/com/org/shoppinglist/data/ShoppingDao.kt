@@ -78,3 +78,4 @@ interface ShoppingDao {
     @Query("SELECT COUNT(*) FROM shopping_items WHERE isChecked = 1 AND isPlanned = 1")
     fun getCheckedItemsCount(): LiveData<Int>
 }
+

@@ -12,3 +12,4 @@ data class SectionWithItems(
     val items: List<ShoppingItem>
 )
 
+
