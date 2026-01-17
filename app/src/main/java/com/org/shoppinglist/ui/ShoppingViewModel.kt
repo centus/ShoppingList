@@ -94,10 +94,6 @@ class ShoppingViewModel(private val repository: ShoppingRepository) : ViewModel(
         _isShoppingMode.value = !(_isShoppingMode.value ?: false)
     }
 
-    fun setShoppingMode(enabled: Boolean) {
-        _isShoppingMode.value = enabled
-    }
-
     // Section operations
     fun addSection(name: String) {
         viewModelScope.launch {
@@ -182,6 +178,20 @@ class ShoppingViewModel(private val repository: ShoppingRepository) : ViewModel(
         }
     }
 
+    fun updateItemImage(item: ShoppingItem, newImageUri: String?) {
+        viewModelScope.launch {
+            val updatedItem = item.copy(imageUri = newImageUri)
+            repository.updateItem(updatedItem)
+        }
+    }
+
+    fun updateItemDetails(item: ShoppingItem, imageUri: String?, productLink: String?) {
+        viewModelScope.launch {
+            val updatedItem = item.copy(imageUri = imageUri, productLink = productLink)
+            repository.updateItem(updatedItem)
+        }
+    }
+
     fun deleteItem(item: ShoppingItem) {
         viewModelScope.launch {
             repository.deleteItem(item)
@@ -195,9 +205,9 @@ class ShoppingViewModel(private val repository: ShoppingRepository) : ViewModel(
         }
     }
 
-    fun toggleItemPlanned(item: ShoppingItem) {
+    fun setItemPlanned(item: ShoppingItem, isPlanned: Boolean) {
         viewModelScope.launch {
-            val updatedItem = item.copy(isPlanned = !item.isPlanned)
+            val updatedItem = item.copy(isPlanned = isPlanned)
             repository.updateItem(updatedItem)
         }
     }
@@ -255,8 +265,11 @@ class ShoppingViewModel(private val repository: ShoppingRepository) : ViewModel(
                         name = simpleItem.name,
                         isPlanned = simpleItem.isPlanned, // <<< Key change: Use isPlanned from SimpleItem
                         isChecked = false,                // Default for imported items
+                        quantity = simpleItem.quantity,   // Use quantity from SimpleItem (defaults to 1 if not present)
                         orderIndex = itemOrder++,
-                        isAdHoc = false                   // Default for imported items
+                        isAdHoc = false,                  // Default for imported items
+                        imageUri = simpleItem.imageUri,
+                        productLink = simpleItem.productLink
                         // Ensure all necessary ShoppingItem fields are covered
                     )
                     repository.insertItem(item)
@@ -265,14 +278,6 @@ class ShoppingViewModel(private val repository: ShoppingRepository) : ViewModel(
             Log.d("ShoppingViewModel", "Import of shopping list data completed with 'isPlanned' status.")
             // You might need to trigger a refresh of _allSectionsWithItems if it's not automatic
             // or ensure displayedList updates correctly.
-        }
-    }
-
-    // importTextToDefaultSection is now removed as TXT import uses importShoppingListData
-
-    fun getAvailableSections(): LiveData<List<Section>> {
-        return _allSectionsWithItems.map { sectionsWithItems ->
-            sectionsWithItems.map { it.section }
         }
     }
 }

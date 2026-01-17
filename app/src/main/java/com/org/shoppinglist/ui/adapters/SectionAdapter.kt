@@ -1,5 +1,6 @@
 package com.org.shoppinglist.ui.adapters
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
@@ -29,11 +30,14 @@ class SectionAdapter(
     private val onSectionDelete: (Section) -> Unit,
     private val onSectionExpanded: (Section, Boolean) -> Unit,
     private val onItemChecked: (ShoppingItem, Boolean) -> Unit,
-    private val onItemPlanned: (ShoppingItem) -> Unit,
+    private val onItemPlanned: (ShoppingItem, Boolean) -> Unit,
     private val onItemEdit: (ShoppingItem) -> Unit,
     private val onItemDelete: (ShoppingItem) -> Unit,
     private val onItemMove: (ShoppingItem) -> Unit,
-    private val onItemQuantityChanged: (ShoppingItem, Int) -> Unit
+    private val onItemQuantityChanged: (ShoppingItem, Int) -> Unit,
+    private val onItemDetails: (ShoppingItem) -> Unit,
+    private val onItemImagePreview: (ShoppingItem) -> Unit,
+    private val onItemLinkClick: (ShoppingItem) -> Unit
 ) : ListAdapter<SectionWithItems, SectionAdapter.SectionViewHolder>(SectionDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SectionViewHolder {
@@ -88,11 +92,14 @@ class SectionAdapter(
             itemAdapter = ItemAdapter(
                 isShoppingMode = isShoppingMode,
                 onItemChecked = { item, isChecked -> onItemChecked(item, isChecked) },
-                onItemPlanned = { item -> onItemPlanned(item) },
+                onItemPlanned = { item, isPlanned -> onItemPlanned(item, isPlanned) },
                 onItemEdit = { item -> onItemEdit(item) },
                 onItemDelete = { item -> onItemDelete(item) },
                 onItemMove = { item -> onItemMove(item) },
-                onItemQuantityChanged = { item, quantity -> onItemQuantityChanged(item, quantity) }
+                onItemQuantityChanged = { item, quantity -> onItemQuantityChanged(item, quantity) },
+                onItemDetails = { item -> onItemDetails(item) },
+                onItemImagePreview = { item -> onItemImagePreview(item) },
+                onItemLinkClick = { item -> onItemLinkClick(item) }
             )
             itemsRecyclerView.adapter = itemAdapter
             itemsRecyclerView.layoutManager = LinearLayoutManager(itemView.context)
@@ -197,6 +204,7 @@ class SectionDiffCallback : DiffUtil.ItemCallback<SectionWithItems>() {
         return oldItem.section.id == newItem.section.id
     }
 
+    @SuppressLint("DiffUtilEquals")
     override fun areContentsTheSame(oldItem: SectionWithItems, newItem: SectionWithItems): Boolean {
         return oldItem.section.isExpanded == newItem.section.isExpanded && oldItem.items == newItem.items
     }

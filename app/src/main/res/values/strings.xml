@@ -88,4 +88,18 @@
     <string name="content_description_move_item">Move Item</string>
     <string name="content_description_edit_item">Edit Item</string>
     <string name="content_description_delete_item">Delete Item</string>
+    <string name="content_description_item_details">פרטי פריט</string>
+    <string name="content_description_item_image">תמונה מצורפת</string>
+    <string name="content_description_item_link">קישור מצורף</string>
+    <string name="content_description_item_image_preview">תצוגת תמונת פריט</string>
+
+    <!-- Item details -->
+    <string name="item_details_title">פרטי פריט</string>
+    <string name="item_details_action">פרטים</string>
+    <string name="attach_image">הוסף תמונה</string>
+    <string name="remove_image">הסר תמונה</string>
+    <string name="item_link_hint">קישור למוצר</string>
+    <string name="open_link">פתח קישור</string>
+    <string name="link_missing_message">אין קישור לפריט זה</string>
+    <string name="invalid_link_message">קישור לא תקין</string>
 </resources>

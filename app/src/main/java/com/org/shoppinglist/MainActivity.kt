@@ -1,11 +1,13 @@
 package com.org.shoppinglist
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
+import android.util.Patterns
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -15,6 +17,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import coil.load
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.org.shoppinglist.data.*
@@ -40,6 +43,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var viewModel: ShoppingViewModel
     private lateinit var sectionAdapter: SectionAdapter
+    private var pendingImageItem: ShoppingItem? = null
+    private var pendingImagePreview: android.widget.ImageView? = null
+    private var pendingImageUriUpdate: ((String?) -> Unit)? = null
 
     private val exportListLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         // ACTION_SEND often doesn't give a direct result, but one could log or toast here if desired
@@ -56,6 +62,27 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        val item = pendingImageItem ?: return@registerForActivityResult
+        if (uri != null) {
+            try {
+                val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                contentResolver.takePersistableUriPermission(uri, flags)
+            } catch (e: SecurityException) {
+                Log.w("MainActivity", "Failed to take persistable permission for image Uri", e)
+            }
+            viewModel.updateItemImage(item, uri.toString())
+            pendingImageUriUpdate?.invoke(uri.toString())
+            pendingImagePreview?.apply {
+                visibility = android.view.View.VISIBLE
+                load(uri)
+            }
+        }
+        pendingImageItem = null
+        pendingImagePreview = null
+        pendingImageUriUpdate = null
+    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,6 +95,21 @@ class MainActivity : AppCompatActivity() {
         setupRecyclerView()
         setupObservers()
         setupClickListeners()
+
+        handleIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent) {
+        if (intent?.action == Intent.ACTION_VIEW && intent.type == "text/plain") {
+            intent.data?.let { uri ->
+                importListFromUri(uri, true)
+            }
+        }
     }
 
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
@@ -142,8 +184,8 @@ class MainActivity : AppCompatActivity() {
             onItemChecked = { item, isChecked ->
                 viewModel.toggleItemChecked(item, isChecked)
             },
-            onItemPlanned = { item ->
-                viewModel.toggleItemPlanned(item)
+            onItemPlanned = { item, isPlanned ->
+                viewModel.setItemPlanned(item, isPlanned)
             },
             onItemEdit = { item ->
                 showEditItemDialog(item)
@@ -156,6 +198,15 @@ class MainActivity : AppCompatActivity() {
             },
             onItemQuantityChanged = { item, newQuantity ->
                 viewModel.updateItemQuantity(item, newQuantity)
+            },
+            onItemDetails = { item ->
+                showItemDetailsDialog(item, viewModel.isShoppingMode.value ?: false)
+            },
+            onItemImagePreview = { item ->
+                showItemImagePreviewDialog(item)
+            },
+            onItemLinkClick = { item ->
+                openItemLink(item)
             },
             onSectionEdit = { section ->
                 showEditSectionDialog(section)
@@ -300,8 +351,135 @@ class MainActivity : AppCompatActivity() {
                     viewModel.updateItemName(item, newName)
                 }
             }
+            .setNeutralButton(getString(R.string.item_details_action)) { _, _ ->
+                showItemDetailsDialog(item, isShoppingMode = false)
+            }
             .setNegativeButton(getString(R.string.cancel), null)
             .show()
+    }
+
+    private fun showItemDetailsDialog(item: ShoppingItem, isShoppingMode: Boolean) {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_item_details, null)
+        val imagePreview = dialogView.findViewById<android.widget.ImageView>(R.id.itemImagePreview)
+        val attachImageButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.attachImageButton)
+        val removeImageButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.removeImageButton)
+        val openLinkButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.openLinkButton)
+        val linkInput = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.linkEditText)
+
+        var currentImageUri = item.imageUri
+        var currentLink = item.productLink
+        val hasImage = !currentImageUri.isNullOrBlank()
+        val hasLink = !currentLink.isNullOrBlank()
+
+        if (hasImage) {
+            imagePreview.visibility = android.view.View.VISIBLE
+            imagePreview.load(item.imageUri)
+            removeImageButton.visibility = android.view.View.VISIBLE
+        } else {
+            imagePreview.visibility = android.view.View.GONE
+            removeImageButton.visibility = android.view.View.GONE
+        }
+
+        linkInput.setText(currentLink ?: "")
+        linkInput.isEnabled = !isShoppingMode
+
+        attachImageButton.visibility = if (isShoppingMode) android.view.View.GONE else android.view.View.VISIBLE
+        removeImageButton.visibility = if (isShoppingMode || !hasImage) android.view.View.GONE else android.view.View.VISIBLE
+
+        openLinkButton.visibility = if (hasLink) android.view.View.VISIBLE else android.view.View.GONE
+
+        attachImageButton.setOnClickListener {
+            pendingImageItem = item
+            pendingImagePreview = imagePreview
+            pendingImageUriUpdate = { updatedUri -> currentImageUri = updatedUri }
+            pickImageLauncher.launch(arrayOf("image/*"))
+        }
+
+        removeImageButton.setOnClickListener {
+            currentImageUri = null
+            viewModel.updateItemImage(item, null)
+            pendingImageUriUpdate?.invoke(null)
+            imagePreview.visibility = android.view.View.GONE
+            removeImageButton.visibility = android.view.View.GONE
+        }
+
+        openLinkButton.setOnClickListener {
+            val link = normalizeLink(linkInput.text?.toString())
+            if (link == null) {
+                Toast.makeText(this@MainActivity, getString(R.string.link_missing_message), Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (!Patterns.WEB_URL.matcher(link).matches()) {
+                Toast.makeText(this@MainActivity, getString(R.string.invalid_link_message), Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+        }
+
+        val builder = AlertDialog.Builder(this)
+            .setTitle(getString(R.string.item_details_title))
+            .setView(dialogView)
+
+        if (isShoppingMode) {
+            builder.setPositiveButton(getString(R.string.cancel), null)
+        } else {
+            builder.setPositiveButton(getString(R.string.save)) { _, _ ->
+                val rawLink = linkInput.text?.toString().orEmpty()
+                val normalized = normalizeLink(rawLink)
+                if (normalized != null && !Patterns.WEB_URL.matcher(normalized).matches()) {
+                    Toast.makeText(this@MainActivity, getString(R.string.invalid_link_message), Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                currentLink = normalized
+                viewModel.updateItemDetails(item, currentImageUri, currentLink)
+            }
+            builder.setNegativeButton(getString(R.string.cancel), null)
+        }
+
+        val dialog = builder.show()
+        dialog.setOnDismissListener {
+            pendingImageItem = null
+            pendingImagePreview = null
+            pendingImageUriUpdate = null
+        }
+    }
+
+    private fun showItemImagePreviewDialog(item: ShoppingItem) {
+        val imageUri = item.imageUri ?: return
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_item_image, null)
+        val imageView = dialogView.findViewById<android.widget.ImageView>(R.id.itemFullImageView)
+        imageView.load(imageUri) {
+            placeholder(R.drawable.ic_image)
+            error(R.drawable.ic_image)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(item.name)
+            .setView(dialogView)
+            .setPositiveButton(getString(R.string.cancel), null)
+            .show()
+    }
+
+    private fun openItemLink(item: ShoppingItem) {
+        val link = normalizeLink(item.productLink)
+        if (link == null) {
+            Toast.makeText(this@MainActivity, getString(R.string.link_missing_message), Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (!Patterns.WEB_URL.matcher(link).matches()) {
+            Toast.makeText(this@MainActivity, getString(R.string.invalid_link_message), Toast.LENGTH_SHORT).show()
+            return
+        }
+        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+    }
+
+    private fun normalizeLink(rawLink: String?): String? {
+        val trimmed = rawLink?.trim().orEmpty()
+        if (trimmed.isBlank()) return null
+        return if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+            trimmed
+        } else {
+            "https://$trimmed"
+        }
     }
 
     private fun showDeleteItemConfirmationDialog(item: ShoppingItem) {
@@ -357,7 +535,18 @@ class MainActivity : AppCompatActivity() {
             }
 
             val exportData = sectionsWithItems.map { swi ->
-                SimpleSection(swi.section.name, swi.items.map { SimpleItem(it.name, it.isPlanned) }) // it.isPlanned added here
+                SimpleSection(
+                    swi.section.name,
+                    swi.items.map {
+                        SimpleItem(
+                            it.name,
+                            it.isPlanned,
+                            it.quantity,
+                            it.imageUri,
+                            it.productLink
+                        )
+                    }
+                )
             }
             val gson = Gson()
             val jsonString = gson.toJson(exportData)

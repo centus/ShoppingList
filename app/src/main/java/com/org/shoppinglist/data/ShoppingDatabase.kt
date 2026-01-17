@@ -4,12 +4,13 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-@Database(entities = [ShoppingItem::class, Section::class], version = 1, exportSchema = false)
+@Database(entities = [ShoppingItem::class, Section::class], version = 3, exportSchema = false)
 abstract class ShoppingDatabase : RoomDatabase() {
 
     abstract fun shoppingDao(): ShoppingDao
@@ -17,6 +18,12 @@ abstract class ShoppingDatabase : RoomDatabase() {
     companion object {
         @Volatile
         private var INSTANCE: ShoppingDatabase? = null
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE shopping_items ADD COLUMN imageUri TEXT")
+                db.execSQL("ALTER TABLE shopping_items ADD COLUMN productLink TEXT")
+            }
+        }
 
         fun getDatabase(context: Context, scope: CoroutineScope): ShoppingDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -26,6 +33,8 @@ abstract class ShoppingDatabase : RoomDatabase() {
                     "shopping_database"
                 )
                 .addCallback(ShoppingDatabaseCallback(scope))
+                .addMigrations(MIGRATION_2_3)
+                .fallbackToDestructiveMigration() // Handle schema changes by recreating the DB
                 .build()
                 INSTANCE = instance
                 instance
@@ -161,4 +170,5 @@ abstract class ShoppingDatabase : RoomDatabase() {
             }
         }
     }
+
 }

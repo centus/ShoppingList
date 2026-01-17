@@ -24,6 +24,8 @@ data class ShoppingItem(
     var isChecked: Boolean = false,
     var isAdHoc: Boolean = false, // Item added quickly during shopping mode
     var orderIndex: Int = 0,      // For ordering within a section
-    var isPlanned: Boolean = true // New field: true if selected in planning mode for the shopping trip
+    var isPlanned: Boolean = true, // New field: true if selected in planning mode for the shopping trip
+    var imageUri: String? = null,  // Optional image to help identify the item
+    var productLink: String? = null // Optional product link
 )
 
