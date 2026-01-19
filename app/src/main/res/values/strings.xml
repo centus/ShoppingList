@@ -102,4 +102,7 @@
     <string name="open_link">פתח קישור</string>
     <string name="link_missing_message">אין קישור לפריט זה</string>
     <string name="invalid_link_message">קישור לא תקין</string>
+    <string name="attach_image_take_photo">צלם תמונה</string>
+    <string name="attach_image_choose_gallery">בחר מהגלריה</string>
+    <string name="attach_image_dialog_title">הוסף תמונה</string>
 </resources>

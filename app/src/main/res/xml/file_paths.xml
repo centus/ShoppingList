@@ -3,4 +3,7 @@
     <cache-path
         name="shared_json_files"
         path="shared_lists/" />
+    <cache-path
+        name="camera_images"
+        path="camera_images/" />
 </paths>

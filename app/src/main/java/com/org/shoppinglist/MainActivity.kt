@@ -46,6 +46,7 @@ class MainActivity : AppCompatActivity() {
     private var pendingImageItem: ShoppingItem? = null
     private var pendingImagePreview: android.widget.ImageView? = null
     private var pendingImageUriUpdate: ((String?) -> Unit)? = null
+    private var pendingCameraImageUri: Uri? = null
 
     private val exportListLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         // ACTION_SEND often doesn't give a direct result, but one could log or toast here if desired
@@ -78,6 +79,30 @@ class MainActivity : AppCompatActivity() {
                 load(uri)
             }
         }
+        pendingImageItem = null
+        pendingImagePreview = null
+        pendingImageUriUpdate = null
+    }
+
+    private val takePictureLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        val item = pendingImageItem ?: return@registerForActivityResult
+        val imageUri = pendingCameraImageUri
+        if (success && imageUri != null) {
+            viewModel.updateItemImage(item, imageUri.toString())
+            pendingImageUriUpdate?.invoke(imageUri.toString())
+            pendingImagePreview?.apply {
+                visibility = android.view.View.VISIBLE
+                load(imageUri)
+            }
+        } else if (imageUri != null) {
+            // Clean up unused file
+            try {
+                contentResolver.delete(imageUri, null, null)
+            } catch (e: Exception) {
+                Log.w("MainActivity", "Failed to delete unused camera image", e)
+            }
+        }
+        pendingCameraImageUri = null
         pendingImageItem = null
         pendingImagePreview = null
         pendingImageUriUpdate = null
@@ -392,7 +417,7 @@ class MainActivity : AppCompatActivity() {
             pendingImageItem = item
             pendingImagePreview = imagePreview
             pendingImageUriUpdate = { updatedUri -> currentImageUri = updatedUri }
-            pickImageLauncher.launch(arrayOf("image/*"))
+            showImageSourceDialog()
         }
 
         removeImageButton.setOnClickListener {
@@ -480,6 +505,35 @@ class MainActivity : AppCompatActivity() {
         } else {
             "https://$trimmed"
         }
+    }
+
+    private fun showImageSourceDialog() {
+        val options = arrayOf(
+            getString(R.string.attach_image_take_photo),
+            getString(R.string.attach_image_choose_gallery)
+        )
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.attach_image_dialog_title))
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> launchCameraCapture()
+                    1 -> pickImageLauncher.launch(arrayOf("image/*"))
+                }
+            }
+            .show()
+    }
+
+    private fun launchCameraCapture() {
+        val cacheDir = File(cacheDir, "camera_images").apply { mkdirs() }
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val imageFile = File(cacheDir, "item_photo_$timeStamp.jpg")
+        val imageUri = FileProvider.getUriForFile(
+            this,
+            "${applicationContext.packageName}.fileprovider",
+            imageFile
+        )
+        pendingCameraImageUri = imageUri
+        takePictureLauncher.launch(imageUri)
     }
 
     private fun showDeleteItemConfirmationDialog(item: ShoppingItem) {
