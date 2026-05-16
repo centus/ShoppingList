@@ -8,3 +8,21 @@ data class SimpleItem(
     val imageUri: String? = null,
     val productLink: String? = null
 )
+
+fun ShoppingItem.toExportItem(shortageMode: Boolean) = SimpleItem(
+    name = name,
+    isPlanned = if (shortageMode) isPlanned && !isChecked else isPlanned,
+    quantity = quantity,
+    imageUri = imageUri,
+    productLink = productLink
+)
+
+fun List<SectionWithItems>.toExportSections(shortageMode: Boolean): List<SimpleSection> =
+    map { swi ->
+        SimpleSection(
+            swi.section.name,
+            swi.items
+                .sortedBy { it.orderIndex }
+                .map { it.toExportItem(shortageMode) }
+        )
+    }

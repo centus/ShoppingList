@@ -78,6 +78,7 @@
     <!-- Menu Actions -->
     <string name="action_reset_all">איפוס רשימת קניות</string>
     <string name="action_share_list">שיתוף רשימה</string>
+    <string name="action_share_shortage_list">שיתוף רשימת חוסרים</string>
     <string name="action_import_list_txt">קבלת רשימה</string>
     <string name="action_reset_shopping_list">איפוס קנייה נוכחית</string>
 

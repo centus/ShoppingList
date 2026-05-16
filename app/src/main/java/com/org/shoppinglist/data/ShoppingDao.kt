@@ -16,8 +16,13 @@ interface ShoppingDao {
     @Delete
     suspend fun deleteSection(section: Section)
 
+    @Transaction
     @Query("SELECT * FROM sections ORDER BY orderIndex ASC")
     fun getAllSectionsWithItems(): LiveData<List<SectionWithItems>>
+
+    @Transaction
+    @Query("SELECT * FROM sections ORDER BY orderIndex ASC")
+    suspend fun getAllSectionsWithItemsOnce(): List<SectionWithItems>
 
     @Query("SELECT * FROM sections ORDER BY orderIndex ASC")
     suspend fun getAllSections(): List<Section>

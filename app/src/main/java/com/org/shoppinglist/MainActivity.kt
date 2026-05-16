@@ -138,10 +138,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        val isShoppingMode = viewModel.isShoppingMode.value ?: false
         val resetShoppingItem = menu.findItem(R.id.action_reset_shopping_list)
-        resetShoppingItem?.isVisible = viewModel.isShoppingMode.value ?: false
+        resetShoppingItem?.isVisible = isShoppingMode
         val resetShoppingList = menu.findItem(R.id.action_reset_all)
-        resetShoppingList?.isVisible = !(viewModel.isShoppingMode.value ?: false)
+        resetShoppingList?.isVisible = !isShoppingMode
+        menu.findItem(R.id.action_share_shortage_list)?.isVisible = isShoppingMode
         return super.onPrepareOptionsMenu(menu)
     }
 
@@ -155,6 +157,10 @@ class MainActivity : AppCompatActivity() {
         return when (item.itemId) {
             R.id.action_share_list -> {
                 exportShoppingList()
+                true
+            }
+            R.id.action_share_shortage_list -> {
+                exportShortageList()
                 true
             }
             R.id.action_import_list_txt -> {
@@ -579,69 +585,74 @@ class MainActivity : AppCompatActivity() {
 
     private fun exportShoppingList() {
         lifecycleScope.launch {
-            val sectionsWithItems = viewModel.displayedList.value ?: run {
-                Toast.makeText(this@MainActivity, "List is empty, nothing to share.", Toast.LENGTH_SHORT).show()
-                return@launch
+            val exportData = viewModel.buildFullListExportData()
+            shareListAsTxt(
+                exportData = exportData,
+                filePrefix = "shopping_list_export",
+                chooserTitleRes = R.string.action_share_list
+            )
+        }
+    }
+
+    private fun exportShortageList() {
+        if (viewModel.isShoppingMode.value != true) return
+        lifecycleScope.launch {
+            val exportData = viewModel.buildShortageListExportData()
+            shareListAsTxt(
+                exportData = exportData,
+                filePrefix = "shopping_list_shortages",
+                chooserTitleRes = R.string.action_share_shortage_list
+            )
+        }
+    }
+
+    private fun shareListAsTxt(
+        exportData: List<SimpleSection>,
+        filePrefix: String,
+        chooserTitleRes: Int
+    ) {
+        if (exportData.isEmpty()) {
+            Toast.makeText(this, "List is empty, nothing to share.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val gson = Gson()
+        val jsonString = gson.toJson(exportData)
+
+        if (jsonString.isBlank()) {
+            Toast.makeText(this, "Failed to generate JSON data.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        try {
+            val sdf = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
+            val timestamp = sdf.format(Date())
+            val fileName = "${filePrefix}_$timestamp.txt"
+
+            val cacheSubDir = File(cacheDir, "shared_lists")
+            cacheSubDir.mkdirs()
+            val file = File(cacheSubDir, fileName)
+
+            FileOutputStream(file).use {
+                it.write(jsonString.toByteArray())
             }
-            if (sectionsWithItems.isEmpty()) {
-                Toast.makeText(this@MainActivity, "List is empty, nothing to share.", Toast.LENGTH_SHORT).show()
-                return@launch
+
+            val fileUri = FileProvider.getUriForFile(
+                this,
+                "${applicationContext.packageName}.fileprovider",
+                file
+            )
+
+            val shareIntent = Intent().apply {
+                action = Intent.ACTION_SEND
+                putExtra(Intent.EXTRA_STREAM, fileUri)
+                type = "text/plain"
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-
-            val exportData = sectionsWithItems.map { swi ->
-                SimpleSection(
-                    swi.section.name,
-                    swi.items.map {
-                        SimpleItem(
-                            it.name,
-                            it.isPlanned,
-                            it.quantity,
-                            it.imageUri,
-                            it.productLink
-                        )
-                    }
-                )
-            }
-            val gson = Gson()
-            val jsonString = gson.toJson(exportData)
-
-            if (jsonString.isBlank()) {
-                Toast.makeText(this@MainActivity, "Failed to generate JSON data.", Toast.LENGTH_SHORT).show()
-                return@launch
-            }
-
-            try {
-                // Generate timestamp for filename
-                val sdf = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
-                val timestamp = sdf.format(Date())
-                val fileName = "shopping_list_export_$timestamp.txt" // New filename with timestamp and .txt extension
-
-                val cacheSubDir = File(cacheDir, "shared_lists")
-                cacheSubDir.mkdirs()
-                val file = File(cacheSubDir, fileName) // Use the new dynamic filename
-
-                FileOutputStream(file).use {
-                    it.write(jsonString.toByteArray()) // Still writing the JSON string as content
-                }
-
-                val fileUri = FileProvider.getUriForFile(
-                    this@MainActivity,
-                    "${applicationContext.packageName}.fileprovider",
-                    file
-                )
-
-                val shareIntent = Intent().apply {
-                    action = Intent.ACTION_SEND
-                    putExtra(Intent.EXTRA_STREAM, fileUri)
-                    type = "text/plain" // CHANGED: MIME type to text/plain for .txt file
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-                exportListLauncher.launch(Intent.createChooser(shareIntent, getString(R.string.action_share_list)))
-
-            } catch (e: Exception) {
-                Log.e("MainActivityExport", "Error exporting list to TXT file", e) // Updated log tag
-                Toast.makeText(this@MainActivity, "Error exporting list: ${e.message}", Toast.LENGTH_LONG).show()
-            }
+            exportListLauncher.launch(Intent.createChooser(shareIntent, getString(chooserTitleRes)))
+        } catch (e: Exception) {
+            Log.e("MainActivityExport", "Error exporting list to TXT file", e)
+            Toast.makeText(this, "Error exporting list: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 

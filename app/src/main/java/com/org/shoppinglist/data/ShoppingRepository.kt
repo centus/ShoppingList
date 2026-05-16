@@ -32,6 +32,10 @@ class ShoppingRepository(private val dao: ShoppingDao) {
         return dao.getAllSections()
     }
 
+    suspend fun getAllSectionsWithItemsOnce(): List<SectionWithItems> {
+        return dao.getAllSectionsWithItemsOnce()
+    }
+
     suspend fun insertItem(item: ShoppingItem): Long {
         return dao.insertItem(item)
     }

@@ -235,6 +235,13 @@ class ShoppingViewModel(private val repository: ShoppingRepository) : ViewModel(
         }
     }
 
+    suspend fun buildFullListExportData(): List<SimpleSection> {
+        return repository.getAllSectionsWithItemsOnce().toExportSections(shortageMode = false)
+    }
+
+    suspend fun buildShortageListExportData(): List<SimpleSection> {
+        return repository.getAllSectionsWithItemsOnce().toExportSections(shortageMode = true)
+    }
 
     fun importShoppingListData(importedData: List<SimpleSection>) {
         viewModelScope.launch {
