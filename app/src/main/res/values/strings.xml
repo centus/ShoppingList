@@ -45,6 +45,8 @@
     <!-- Input hints -->
     <string name="enter_section_name">הכנס שם קטגוריה</string>
     <string name="enter_item_name">הכנס שם פריט</string>
+    <string name="edit_quantity">ערוך כמות</string>
+    <string name="enter_quantity">הכנס כמות</string>
 
     <!-- Default sections -->
     <string name="unassigned">לא מוקצה</string>

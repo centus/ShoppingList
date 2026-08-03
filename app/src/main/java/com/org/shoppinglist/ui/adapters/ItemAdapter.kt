@@ -25,6 +25,7 @@ class ItemAdapter(
     private val onItemDelete: (ShoppingItem) -> Unit,
     private val onItemMove: (ShoppingItem) -> Unit,
     private val onItemQuantityChanged: (ShoppingItem, Int) -> Unit,
+    private val onItemQuantityEdit: (ShoppingItem) -> Unit,
     private val onItemDetails: (ShoppingItem) -> Unit,
     private val onItemImagePreview: (ShoppingItem) -> Unit,
     private val onItemLinkClick: (ShoppingItem) -> Unit
@@ -133,6 +134,12 @@ class ItemAdapter(
             itemLinkButton.setOnClickListener {
                 if (adapterPosition != RecyclerView.NO_POSITION) {
                     onItemLinkClick(getItem(adapterPosition))
+                }
+            }
+
+            quantityValue.setOnClickListener {
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    onItemQuantityEdit(getItem(adapterPosition))
                 }
             }
 

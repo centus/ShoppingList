@@ -35,6 +35,7 @@ class SectionAdapter(
     private val onItemDelete: (ShoppingItem) -> Unit,
     private val onItemMove: (ShoppingItem) -> Unit,
     private val onItemQuantityChanged: (ShoppingItem, Int) -> Unit,
+    private val onItemQuantityEdit: (ShoppingItem) -> Unit,
     private val onItemDetails: (ShoppingItem) -> Unit,
     private val onItemImagePreview: (ShoppingItem) -> Unit,
     private val onItemLinkClick: (ShoppingItem) -> Unit
@@ -97,6 +98,7 @@ class SectionAdapter(
                 onItemDelete = { item -> onItemDelete(item) },
                 onItemMove = { item -> onItemMove(item) },
                 onItemQuantityChanged = { item, quantity -> onItemQuantityChanged(item, quantity) },
+                onItemQuantityEdit = { item -> onItemQuantityEdit(item) },
                 onItemDetails = { item -> onItemDetails(item) },
                 onItemImagePreview = { item -> onItemImagePreview(item) },
                 onItemLinkClick = { item -> onItemLinkClick(item) }

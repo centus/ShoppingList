@@ -230,6 +230,9 @@ class MainActivity : AppCompatActivity() {
             onItemQuantityChanged = { item, newQuantity ->
                 viewModel.updateItemQuantity(item, newQuantity)
             },
+            onItemQuantityEdit = { item ->
+                showEditQuantityDialog(item)
+            },
             onItemDetails = { item ->
                 showItemDetailsDialog(item, viewModel.isShoppingMode.value ?: false)
             },
@@ -384,6 +387,27 @@ class MainActivity : AppCompatActivity() {
             }
             .setNeutralButton(getString(R.string.item_details_action)) { _, _ ->
                 showItemDetailsDialog(item, isShoppingMode = false)
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show()
+    }
+
+    private fun showEditQuantityDialog(item: ShoppingItem) {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_input, null)
+        val editText = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.inputEditText)
+        editText.hint = getString(R.string.enter_quantity)
+        editText.inputType = android.text.InputType.TYPE_CLASS_NUMBER
+        editText.setText(item.quantity.toString())
+        editText.setSelection(editText.text?.length ?: 0)
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.edit_quantity))
+            .setView(dialogView)
+            .setPositiveButton(getString(R.string.save)) { _, _ ->
+                val newQuantity = editText.text.toString().trim().toIntOrNull()
+                if (newQuantity != null && newQuantity >= 1) {
+                    viewModel.updateItemQuantity(item, newQuantity)
+                }
             }
             .setNegativeButton(getString(R.string.cancel), null)
             .show()
