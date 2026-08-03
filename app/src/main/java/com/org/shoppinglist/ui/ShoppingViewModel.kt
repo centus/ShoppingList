@@ -20,6 +20,9 @@ class ShoppingViewModel(private val repository: ShoppingRepository) : ViewModel(
     private val _isShoppingMode = MutableLiveData(false)
     val isShoppingMode: LiveData<Boolean> = _isShoppingMode
 
+    // Tracks last applied mode so LiveData re-delivery (e.g. after rotation) is not treated as a mode change.
+    private var lastAppliedShoppingMode: Boolean? = null
+
     val displayedList = MediatorLiveData<List<SectionWithItems>>()
 
     init {
@@ -29,7 +32,9 @@ class ShoppingViewModel(private val repository: ShoppingRepository) : ViewModel(
         }
         // When shopping mode itself changes, reset expansion state
         displayedList.addSource(_isShoppingMode) { mode ->
-            updateDisplayedList(_allSectionsWithItems.value, mode, isModeChange = true)
+            val isModeChange = lastAppliedShoppingMode != null && lastAppliedShoppingMode != mode
+            lastAppliedShoppingMode = mode
+            updateDisplayedList(_allSectionsWithItems.value, mode, isModeChange = isModeChange)
         }
     }
 
