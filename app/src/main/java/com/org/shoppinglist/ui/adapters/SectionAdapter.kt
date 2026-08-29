@@ -19,6 +19,7 @@ import com.org.shoppinglist.data.Section
 import com.org.shoppinglist.data.SectionWithItems
 import com.org.shoppinglist.data.ShoppingItem
 import com.google.android.material.card.MaterialCardView
+import com.org.shoppinglist.ui.ShoppingListItemAnimator
 import com.org.shoppinglist.ui.gone
 import com.org.shoppinglist.ui.visible
 
@@ -41,6 +42,12 @@ class SectionAdapter(
     private val onItemLinkClick: (ShoppingItem) -> Unit
 ) : ListAdapter<SectionWithItems, SectionAdapter.SectionViewHolder>(SectionDiffCallback()) {
 
+    private var suppressItemAnimations = false
+
+    fun setSuppressItemAnimations(suppress: Boolean) {
+        suppressItemAnimations = suppress
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SectionViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_section, parent, false)
@@ -52,10 +59,28 @@ class SectionAdapter(
         position: Int,
         payloads: MutableList<Any>
     ) {
-        if (payloads.contains(PAYLOAD_MODE_CHANGED)) {
-            holder.bindShoppingMode(getItem(position))
-        } else {
+        if (payloads.isEmpty()) {
             super.onBindViewHolder(holder, position, payloads)
+            return
+        }
+        val sectionWithItems = getItem(position)
+        val payloadSet = payloads.flatMap { payload ->
+            when (payload) {
+                is Collection<*> -> payload.map { it.toString() }
+                else -> listOf(payload.toString())
+            }
+        }.toSet()
+        if (payloadSet.contains(PAYLOAD_MODE_CHANGED)) {
+            holder.bindShoppingMode(sectionWithItems)
+        }
+        if (payloadSet.contains(PAYLOAD_ITEMS)) {
+            holder.submitItems(sectionWithItems)
+        }
+        if (payloadSet.contains(PAYLOAD_EXPANDED)) {
+            holder.bindExpanded(sectionWithItems)
+        }
+        if (payloadSet.contains(PAYLOAD_PROGRESS)) {
+            holder.bindProgress(sectionWithItems)
         }
     }
 
@@ -105,6 +130,7 @@ class SectionAdapter(
             )
             itemsRecyclerView.adapter = itemAdapter
             itemsRecyclerView.layoutManager = LinearLayoutManager(itemView.context)
+            itemsRecyclerView.itemAnimator = ShoppingListItemAnimator()
 
             expandButton.setOnClickListener {
                 if (adapterPosition != RecyclerView.NO_POSITION) {
@@ -139,10 +165,7 @@ class SectionAdapter(
 
         fun bind(sectionWithItems: SectionWithItems) {
             sectionTitle.text = sectionWithItems.section.name
-            itemsRecyclerView.visibility = if (sectionWithItems.section.isExpanded) View.VISIBLE else View.GONE
-            expandButton.setImageResource(
-                if (sectionWithItems.section.isExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more
-            )
+            bindExpanded(sectionWithItems)
 
             val sectionCard = itemView as? MaterialCardView
             if (sectionWithItems.section.isDefault) {
@@ -152,9 +175,45 @@ class SectionAdapter(
                 sectionCard?.strokeWidth = 0
             }
 
-            itemAdapter.submitList(sectionWithItems.items)
-
+            submitItems(sectionWithItems)
             bindShoppingMode(sectionWithItems)
+        }
+
+        fun submitItems(sectionWithItems: SectionWithItems) {
+            applyItemAnimationPolicy()
+            itemAdapter.submitList(sectionWithItems.items)
+        }
+
+        fun bindExpanded(sectionWithItems: SectionWithItems) {
+            itemsRecyclerView.visibility = if (sectionWithItems.section.isExpanded) View.VISIBLE else View.GONE
+            expandButton.setImageResource(
+                if (sectionWithItems.section.isExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more
+            )
+        }
+
+        private fun applyItemAnimationPolicy() {
+            itemsRecyclerView.itemAnimator = if (suppressItemAnimations) {
+                null
+            } else {
+                itemsRecyclerView.itemAnimator as? ShoppingListItemAnimator ?: ShoppingListItemAnimator()
+            }
+        }
+
+        fun bindProgress(sectionWithItems: SectionWithItems) {
+            if (!isShoppingMode) {
+                return
+            }
+            val checkedCount = sectionWithItems.section.shoppingCheckedCount
+            val totalCount = sectionWithItems.section.shoppingPlannedCount
+            checkedCountText.text = checkedCount.toString()
+            totalCountText.text = totalCount.toString()
+            completionIcon.isVisible = totalCount > 0 && checkedCount == totalCount
+
+            if (totalCount > 0 && checkedCount == totalCount) {
+                checkedCountText.setTextColor(ContextCompat.getColor(context, R.color.success_color))
+            } else {
+                checkedCountText.setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+            }
         }
 
         fun bindShoppingMode(sectionWithItems: SectionWithItems) {
@@ -172,18 +231,7 @@ class SectionAdapter(
             if (isShoppingMode) {
                 shoppingProgressContainer.visible()
                 itemCountText.gone()
-                val checkedCount = sectionWithItems.items.count { it.isChecked }
-                val totalCount = sectionWithItems.items.size
-                checkedCountText.text = checkedCount.toString()
-                totalCountText.text = totalCount.toString()
-                completionIcon.isVisible = totalCount > 0 && checkedCount == totalCount
-
-                if (totalCount > 0 && checkedCount == totalCount) {
-                    checkedCountText.setTextColor(ContextCompat.getColor(context, R.color.success_color))
-                } else {
-                    checkedCountText.setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
-                }
-
+                bindProgress(sectionWithItems)
             } else { // Planning mode
                 shoppingProgressContainer.gone()
                 itemCountText.visible()
@@ -197,7 +245,10 @@ class SectionAdapter(
     }
 
     companion object {
-        private const val PAYLOAD_MODE_CHANGED = "PAYLOAD_MODE_CHANGED"
+        const val PAYLOAD_MODE_CHANGED = "PAYLOAD_MODE_CHANGED"
+        const val PAYLOAD_ITEMS = "PAYLOAD_ITEMS"
+        const val PAYLOAD_EXPANDED = "PAYLOAD_EXPANDED"
+        const val PAYLOAD_PROGRESS = "PAYLOAD_PROGRESS"
     }
 }
 
@@ -208,6 +259,26 @@ class SectionDiffCallback : DiffUtil.ItemCallback<SectionWithItems>() {
 
     @SuppressLint("DiffUtilEquals")
     override fun areContentsTheSame(oldItem: SectionWithItems, newItem: SectionWithItems): Boolean {
-        return oldItem.section.isExpanded == newItem.section.isExpanded && oldItem.items == newItem.items
+        return oldItem.section.isExpanded == newItem.section.isExpanded &&
+            oldItem.section.shoppingCheckedCount == newItem.section.shoppingCheckedCount &&
+            oldItem.section.shoppingPlannedCount == newItem.section.shoppingPlannedCount &&
+            oldItem.section.name == newItem.section.name &&
+            oldItem.items == newItem.items
+    }
+
+    override fun getChangePayload(oldItem: SectionWithItems, newItem: SectionWithItems): Any? {
+        val payloads = mutableListOf<String>()
+        if (oldItem.items != newItem.items) {
+            payloads.add(SectionAdapter.PAYLOAD_ITEMS)
+        }
+        if (oldItem.section.isExpanded != newItem.section.isExpanded) {
+            payloads.add(SectionAdapter.PAYLOAD_EXPANDED)
+        }
+        if (oldItem.section.shoppingCheckedCount != newItem.section.shoppingCheckedCount ||
+            oldItem.section.shoppingPlannedCount != newItem.section.shoppingPlannedCount
+        ) {
+            payloads.add(SectionAdapter.PAYLOAD_PROGRESS)
+        }
+        return payloads.ifEmpty { null }
     }
 }

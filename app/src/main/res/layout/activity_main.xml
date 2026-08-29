@@ -79,27 +79,56 @@
                 android:textSize="16sp"
                 android:textDirection="rtl" />
 
-            <TextView
-                android:id="@+id/checkedCountText"
+            <FrameLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="@string/items_done"
-                android:textColor="@color/text_secondary"
-                android:textSize="16sp"
-                android:textDirection="rtl" />
+                android:layout_weight="1">
+
+                <TextView
+                    android:id="@+id/checkedCountText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:gravity="center"
+                    android:foreground="?attr/selectableItemBackground"
+                    android:paddingStart="12dp"
+                    android:paddingTop="6dp"
+                    android:paddingEnd="12dp"
+                    android:paddingBottom="6dp"
+                    android:text="@string/items_done"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="16sp"
+                    android:textDirection="rtl" />
+            </FrameLayout>
 
         </LinearLayout>
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/sectionsRecyclerView"
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
-            android:clipToPadding="false"
-            android:padding="8dp"
-            tools:listitem="@layout/item_section" />
+            android:layout_weight="1">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/sectionsRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:padding="8dp"
+                tools:listitem="@layout/item_section" />
+
+            <TextView
+                android:id="@+id/emptyShoppingText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:padding="32dp"
+                android:text="@string/shopping_empty_remaining"
+                android:textAlignment="center"
+                android:textColor="@color/text_secondary"
+                android:textSize="16sp"
+                android:visibility="gone" />
+        </FrameLayout>
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/addSectionFab"

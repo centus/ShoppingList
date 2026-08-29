@@ -14,4 +14,28 @@ data class Section(
 ) {
     @Ignore
     var isExpanded: Boolean = false // Added back
+
+    // Display-only shopping progress, computed from all planned items (including hidden purchased).
+    @Ignore
+    var shoppingCheckedCount: Int = 0
+
+    @Ignore
+    var shoppingPlannedCount: Int = 0
+
+    fun copyDisplayState(
+        isExpanded: Boolean = this.isExpanded,
+        shoppingCheckedCount: Int = this.shoppingCheckedCount,
+        shoppingPlannedCount: Int = this.shoppingPlannedCount
+    ): Section {
+        return Section(
+            id = id,
+            name = name,
+            orderIndex = orderIndex,
+            isDefault = isDefault
+        ).apply {
+            this.isExpanded = isExpanded
+            this.shoppingCheckedCount = shoppingCheckedCount
+            this.shoppingPlannedCount = shoppingPlannedCount
+        }
+    }
 }
