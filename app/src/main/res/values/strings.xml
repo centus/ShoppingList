@@ -9,8 +9,11 @@
     <!-- Statistics -->
     <string name="items_left">פריטים נותרו</string>
     <string name="items_done">פריטים הושלמו</string>
-    <string name="items_left_placeholder" translatable="false">%1$d Items Left</string>
-    <string name="items_done_placeholder" translatable="false">%1$d Items Done</string>
+    <string name="items_left_placeholder">%1$d פריטים נותרו</string>
+    <string name="items_done_placeholder">%1$d פריטים הושלמו</string>
+    <string name="shopping_empty_remaining">הכל נקנה! הקישו על הפריטים שהושלמו כדי לראות אותם</string>
+    <string name="show_purchased_items">הצג פריטים שנרכשו</string>
+    <string name="hide_purchased_items">הסתר פריטים שנרכשו</string>
 
 
     <!-- Dialog titles -->

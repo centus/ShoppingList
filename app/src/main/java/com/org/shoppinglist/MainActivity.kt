@@ -22,6 +22,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.org.shoppinglist.data.*
 import com.org.shoppinglist.databinding.ActivityMainBinding
+import com.org.shoppinglist.ui.ShoppingListItemAnimator
 import com.org.shoppinglist.ui.ShoppingViewModel
 import com.org.shoppinglist.ui.ShoppingViewModelFactory
 import com.org.shoppinglist.ui.adapters.SectionAdapter
@@ -259,7 +260,7 @@ class MainActivity : AppCompatActivity() {
         binding.sectionsRecyclerView.apply {
             layoutManager = LinearLayoutManager(this@MainActivity)
             adapter = sectionAdapter
-            itemAnimator = null
+            itemAnimator = ShoppingListItemAnimator()
         }
     }
 
@@ -272,7 +273,16 @@ class MainActivity : AppCompatActivity() {
                 }
                 Log.d("MainActivity", "Section '${sectionWithItems.section.name}': [$itemNames]")
             }
+            val skipAnimations = viewModel.skipListAnimations
+            sectionAdapter.setSuppressItemAnimations(skipAnimations)
+            binding.sectionsRecyclerView.itemAnimator = if (skipAnimations) {
+                null
+            } else {
+                binding.sectionsRecyclerView.itemAnimator as? ShoppingListItemAnimator
+                    ?: ShoppingListItemAnimator()
+            }
             sectionAdapter.submitList(sections)
+            updateEmptyShoppingState(sections)
         }
 
         viewModel.uncheckedItemsCount.observe(this) { count ->
@@ -289,12 +299,53 @@ class MainActivity : AppCompatActivity() {
             binding.addSectionFab.visibility = if (isShoppingMode) android.view.View.GONE else android.view.View.VISIBLE
             sectionAdapter.updateShoppingMode(isShoppingMode)
             invalidateOptionsMenu()
+            updatePurchasedToggleUi()
+            updateEmptyShoppingState(viewModel.displayedList.value)
+        }
+
+        viewModel.showPurchasedItems.observe(this) {
+            updatePurchasedToggleUi()
+            updateEmptyShoppingState(viewModel.displayedList.value)
+        }
+    }
+
+    private fun updatePurchasedToggleUi() {
+        val isShoppingMode = viewModel.isShoppingMode.value == true
+        val showPurchased = viewModel.showPurchasedItems.value == true
+        binding.checkedCountText.isClickable = isShoppingMode
+        binding.checkedCountText.isFocusable = isShoppingMode
+        if (isShoppingMode && showPurchased) {
+            binding.checkedCountText.setBackgroundResource(R.drawable.bg_purchased_toggle_selected)
+            binding.checkedCountText.setTextColor(getColor(R.color.success_color))
+            binding.checkedCountText.contentDescription = getString(R.string.hide_purchased_items)
+        } else {
+            binding.checkedCountText.background = null
+            binding.checkedCountText.setTextColor(getColor(R.color.text_secondary))
+            binding.checkedCountText.contentDescription = if (isShoppingMode) {
+                getString(R.string.show_purchased_items)
+            } else {
+                getString(R.string.items_done)
+            }
+        }
+    }
+
+    private fun updateEmptyShoppingState(sections: List<SectionWithItems>?) {
+        val isShoppingMode = viewModel.isShoppingMode.value == true
+        val isEmpty = sections.isNullOrEmpty()
+        binding.emptyShoppingText.visibility = if (isShoppingMode && isEmpty) {
+            android.view.View.VISIBLE
+        } else {
+            android.view.View.GONE
         }
     }
 
     private fun setupClickListeners() {
         binding.modeToggleButton.setOnClickListener {
             viewModel.toggleShoppingMode()
+        }
+
+        binding.checkedCountText.setOnClickListener {
+            viewModel.toggleShowPurchasedItems()
         }
 
         binding.addSectionFab.setOnClickListener {

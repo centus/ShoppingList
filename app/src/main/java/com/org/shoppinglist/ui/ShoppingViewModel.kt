@@ -6,7 +6,6 @@ import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.map
 import androidx.lifecycle.viewModelScope
 import com.org.shoppinglist.data.*
 import kotlinx.coroutines.launch
@@ -20,83 +19,87 @@ class ShoppingViewModel(private val repository: ShoppingRepository) : ViewModel(
     private val _isShoppingMode = MutableLiveData(false)
     val isShoppingMode: LiveData<Boolean> = _isShoppingMode
 
+    private val _showPurchasedItems = MutableLiveData(false)
+    val showPurchasedItems: LiveData<Boolean> = _showPurchasedItems
+
     // Tracks last applied mode so LiveData re-delivery (e.g. after rotation) is not treated as a mode change.
     private var lastAppliedShoppingMode: Boolean? = null
 
     val displayedList = MediatorLiveData<List<SectionWithItems>>()
 
+    /**
+     * True for the current [displayedList] emission when per-row item animations should be skipped
+     * (mode change, show-purchased toggle, or the initial load).
+     */
+    var skipListAnimations: Boolean = false
+        private set
+
     init {
-        // When underlying data changes (e.g., item checked), preserve expansion state
+        // When underlying data changes (e.g., item checked), preserve expansion state and animate check-off.
         displayedList.addSource(_allSectionsWithItems) { sections ->
-            updateDisplayedList(sections, _isShoppingMode.value ?: false, isModeChange = false)
+            updateDisplayedList(
+                sectionsFromDb = sections,
+                currentActualMode = _isShoppingMode.value ?: false,
+                showPurchasedItems = _showPurchasedItems.value ?: false,
+                isModeChange = false,
+                skipAnimations = displayedList.value == null
+            )
         }
-        // When shopping mode itself changes, reset expansion state
+        // When shopping mode itself changes, reset expansion state and skip staggered animations.
         displayedList.addSource(_isShoppingMode) { mode ->
             val isModeChange = lastAppliedShoppingMode != null && lastAppliedShoppingMode != mode
             lastAppliedShoppingMode = mode
-            updateDisplayedList(_allSectionsWithItems.value, mode, isModeChange = isModeChange)
+            updateDisplayedList(
+                sectionsFromDb = _allSectionsWithItems.value,
+                currentActualMode = mode,
+                showPurchasedItems = _showPurchasedItems.value ?: false,
+                isModeChange = isModeChange,
+                skipAnimations = true
+            )
+        }
+        displayedList.addSource(_showPurchasedItems) { showPurchased ->
+            updateDisplayedList(
+                sectionsFromDb = _allSectionsWithItems.value,
+                currentActualMode = _isShoppingMode.value ?: false,
+                showPurchasedItems = showPurchased,
+                isModeChange = false,
+                skipAnimations = true
+            )
         }
     }
 
-    // Modified updateDisplayedList method
     private fun updateDisplayedList(
         sectionsFromDb: List<SectionWithItems>?,
         currentActualMode: Boolean,
-        isModeChange: Boolean // New parameter
+        showPurchasedItems: Boolean,
+        isModeChange: Boolean,
+        skipAnimations: Boolean
     ) {
-        // Capture the state of the currently displayed list BEFORE this update
+        skipListAnimations = skipAnimations
         val oldDisplayedSectionsMap: Map<Long, SectionWithItems> =
             displayedList.value?.associateBy { it.section.id } ?: emptyMap()
+        displayedList.value = ShoppingDisplayList.build(
+            sectionsFromDb = sectionsFromDb,
+            isShoppingMode = currentActualMode,
+            showPurchasedItems = showPurchasedItems,
+            oldDisplayedSections = oldDisplayedSectionsMap,
+            isModeChange = isModeChange
+        )
+    }
 
-        if (sectionsFromDb == null) {
-            displayedList.value = emptyList()
+    fun toggleShoppingMode() {
+        val enteringShopping = !(_isShoppingMode.value ?: false)
+        if (!enteringShopping && _showPurchasedItems.value == true) {
+            _showPurchasedItems.value = false
+        }
+        _isShoppingMode.value = enteringShopping
+    }
+
+    fun toggleShowPurchasedItems() {
+        if (_isShoppingMode.value != true) {
             return
         }
-
-        val newProcessedList = sectionsFromDb.mapNotNull { sectionFromDbWithItems ->
-            val sectionFromDb = sectionFromDbWithItems.section
-
-            // Determine the correct isExpanded state
-            val determinedIsExpandedState = if (isModeChange) {
-                false // If it's a mode change, always collapse sections
-            } else {
-                // Otherwise, preserve the existing expansion state from the old displayed list,
-                // or default to false if the section is new or wasn't found.
-                oldDisplayedSectionsMap[sectionFromDb.id]?.section?.isExpanded ?: false
-            }
-
-            // Create a new Section object, applying the determined isExpanded state
-            // (Manual construction as isExpanded is @Ignore)
-            val finalSectionStateForDisplay = Section(
-                id = sectionFromDb.id,
-                name = sectionFromDb.name,
-                orderIndex = sectionFromDb.orderIndex,
-                isDefault = sectionFromDb.isDefault
-            ).apply { // apply extension function to set the @Ignore property
-                isExpanded = determinedIsExpandedState
-            }
-
-            // Filter items based on the current mode
-            val itemsToFilter = sectionFromDbWithItems.items
-            val itemsToDisplay = if (currentActualMode) { // Shopping mode
-                itemsToFilter.filter { it.isPlanned }
-            } else { // Planning mode
-                itemsToFilter // Show all items
-            }
-
-            // Only include the section if it's Planning mode,
-            // OR if it's Shopping mode AND has items to display.
-            if (!currentActualMode || itemsToDisplay.isNotEmpty()) {
-                // Create SectionWithItems with a new ArrayList for its items, for DiffUtil robustness
-                SectionWithItems(section = finalSectionStateForDisplay, items = ArrayList(itemsToDisplay))
-            } else {
-                null // Exclude section in Shopping mode if it has no planned items
-            }
-        }
-        displayedList.value = newProcessedList
-    }
-    fun toggleShoppingMode() {
-        _isShoppingMode.value = !(_isShoppingMode.value ?: false)
+        _showPurchasedItems.value = !(_showPurchasedItems.value ?: false)
     }
 
     // Section operations
@@ -133,16 +136,9 @@ class ShoppingViewModel(private val repository: ShoppingRepository) : ViewModel(
             if (existingSectionWithItems.section.id == sectionToUpdate.id) {
                 // isExpanded is an @Ignore var, so it's not in copy().
                 // Manually create a new Section, copying constructor properties, then set isExpanded.
-                val originalSection = existingSectionWithItems.section
-                val updatedSection = Section(
-                    id = originalSection.id,
-                    name = originalSection.name,
-                    orderIndex = originalSection.orderIndex,
-                    isDefault = originalSection.isDefault
+                val updatedSection = existingSectionWithItems.section.copyDisplayState(
+                    isExpanded = newExpandedState
                 )
-                updatedSection.isExpanded = newExpandedState // Set the @Ignore var manually
-
-                // Create a new SectionWithItems object.
                 SectionWithItems(section = updatedSection, items = ArrayList(existingSectionWithItems.items))
             } else {
                 // For all other sections, return the existing SectionWithItems instance.
@@ -236,6 +232,7 @@ class ShoppingViewModel(private val repository: ShoppingRepository) : ViewModel(
             repository.resetAllPlannedStates()
             repository.resetAllItemQuantities()
             repository.deleteAdHocItems()
+            _showPurchasedItems.value = false
             _isShoppingMode.value = false
         }
     }
